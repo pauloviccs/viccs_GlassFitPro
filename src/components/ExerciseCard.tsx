@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform } from 'framer-motion';
 import { Check, Play, ChevronRight, X } from 'lucide-react';
 import { WorkoutExercise } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, getYoutubeThumbnail } from '@/lib/utils';
 
 const getEmbedUrl = (url: string) => {
   if (!url) return '';
@@ -117,7 +117,7 @@ export function ExerciseCard({ workoutExercise, onToggleComplete }: ExerciseCard
             ) : (
               <motion.img
                 key="image"
-                src={exercise.imageUrl}
+                src={getYoutubeThumbnail(exercise.videoUrl, exercise.imageUrl)}
                 alt={exercise.name}
                 className="w-full h-full object-cover"
                 initial={{ opacity: 0 }}
