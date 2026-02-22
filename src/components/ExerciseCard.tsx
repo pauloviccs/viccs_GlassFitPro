@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform } from 'framer-motion';
-import { Check, Play, ChevronRight, X } from 'lucide-react';
+import { Check, Play, ChevronRight, X, ChevronDown, Info } from 'lucide-react';
 import { WorkoutExercise } from '@/types';
 import { cn, getYoutubeThumbnail } from '@/lib/utils';
 
@@ -33,6 +33,7 @@ interface ExerciseCardProps {
 export function ExerciseCard({ workoutExercise, onToggleComplete }: ExerciseCardProps) {
   const { exercise, sets, reps, completed, id } = workoutExercise;
   const [showVideo, setShowVideo] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Swipe to Complete Logic
   const x = useMotionValue(0);
@@ -157,10 +158,45 @@ export function ExerciseCard({ workoutExercise, onToggleComplete }: ExerciseCard
 
         {/* Content Area */}
         <div className="p-4 space-y-3 flex-grow flex flex-col justify-between">
-          <div>
-            <h3 className="font-semibold text-foreground">{exercise.name}</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{exercise.muscleGroup}</p>
+          <div
+            className="flex justify-between items-start cursor-pointer group"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <div>
+              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{exercise.name}</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{exercise.muscleGroup}</p>
+            </div>
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+              className="glass p-1.5 rounded-full"
+            >
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            </motion.div>
           </div>
+
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-black/20 rounded-xl p-3 border border-white/5 mt-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Info className="w-4 h-4 text-primary" />
+                    <span className="font-semibold text-foreground text-xs uppercase tracking-wider">Instruções / Dicas</span>
+                  </div>
+                  {exercise.description ? (
+                    <p className="leading-relaxed whitespace-pre-wrap text-[13px] text-muted-foreground">{exercise.description}</p>
+                  ) : (
+                    <p className="italic text-xs text-muted-foreground/60">Nenhuma instrução adicional foi fornecida.</p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="flex gap-3">
             <div className="glass-subtle rounded-xl px-3 py-1.5 text-center flex-1">
