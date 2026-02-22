@@ -1,73 +1,97 @@
-# Welcome to your Lovable project
+<div align="center">
+  
+# 🏋️ GlassFit Pro
 
-## Project info
+**Plataforma de Gestão de Treinamentos de Elite.**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 
-## How can I edit this code?
+***
 
-There are several ways of editing your application.
+</div>
 
-**Use Lovable**
+## 🌟 O que é o GlassFit Pro?
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+O **GlassFit Pro** não é apenas mais um aplicativo de academia. É uma experiência dualística projetada para conectar Treinadores (Admins) aos seus Alunos por meio de uma interface premium, imersiva e reativa.
 
-Changes made via Lovable will be committed automatically to this repo.
+Nós unimos a robustez de um backend moderno com a estética arrojada do **Glassmorphism**, oferecendo um visual futurista sem sacrificar a velocidade ou a acessibilidade.
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🎯 Arquitetura de Dois Mundos
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+O app é magicamente dividido em duas frentes após o Autenticador inteligente:
 
-Follow these steps:
+### 🎓 1. Portal do Aluno (Mobile First)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Focado no uso de "chão de fábrica" (na academia).
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- **Dashboard Semanal:** O aluno entra e já vê exatamente os exercícios de *hoje*.
+- **Progressão Otimista:** Cada exercício marcado como completo (Check) sincroniza instantaneamente com a base via nuvem, preenchendo a barra de progresso da semana.
+- **Aprendizado Visual:** Thumbnails nítidos com Player de Vídeo embutido dentro dos botões (YouTube iframes) para executar a forma perfeita.
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 💼 2. Painel do Professor (Admin Dashboard)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Visão tática e comando administrativo para desktops.
 
-**Edit a file directly in GitHub**
+- **Centro de Comando:** Estatísticas reais capturadas ao vivo (Total de alunos, setups ativos e taxa global de conclusão da academia).
+- **Gestão de Exercícios (CRUD):** Construa sua própria biblioteca de exercícios ilimitada, subindo thumbnails e tutoriais.
+- **Auditor de Máquina:** O Professor enxerga como os alunos estão indo, avaliando barra a barra, repetindo linha por linha de suas planilhas de atividade recente.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## 🛠️ Stack Tecnológica (Modern Web)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Construído aos moldes da modernidade web, pronto para escalar.
 
-## What technologies are used for this project?
+- **Frontend Core**: Vite + React + TypeScript
+- **Design System & UI**: Tailwind CSS de baixo perfil (Configurado via Token CSS) + [shadcn/ui] (Componentes Desacoplados).
+- **Animações Fluidas**: Framer Motion gerenciando drags, hovers e scale de layouts nas pontas dos dedos.
+- **Data, Auth & Persistence**: Supabase – Sessões baseadas no localStorage, proteção por RLS e escalabilidade de relatórios de tabelas ligadas via Inner Join.
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🚀 Setup e Instalação (Para Devs)
 
-## How can I deploy this project?
+Quer hospedar o GlassFit Pro ou alterar seu motor?
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+1. **Clone do Repositório**
 
-## Can I connect a custom domain to my Lovable project?
+   ```bash
+   git clone https://github.com/pauloviccs/viccs_GlassFitPro.git
+   cd viccs_GlassFitPro
+   ```
 
-Yes, you can!
+2. **Instalação das Dependências**
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+   ```bash
+   npm install
+   # ou
+   bun install
+   ```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+3. **Ambiente Supabase (.env)**
+   Crie um arquivo `.env.local` na raiz contendo sua base relacional:
+
+   ```env
+   VITE_SUPABASE_URL="SUA_URL_AQUI"
+   VITE_SUPABASE_ANON_KEY="SUA_KEY_AQUI"
+   ```
+
+4. **Rodando Localmente**
+
+   ```bash
+   npm run dev
+   ```
+
+   > 📱 *O aplicativo inicia na porta 5173. Recomendamos usar Responsive View nas Ferramentas de Desenvolvedor na hora de checar a Rota `/student`.*
+
+---
+
+<div align="center">
+  <i>Construído sob extrema excelência visual e código limpo por VICCS Design - Paulo Vinicios.</i>
+</div>
