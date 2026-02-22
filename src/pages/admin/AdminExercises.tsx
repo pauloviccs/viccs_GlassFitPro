@@ -194,8 +194,8 @@ export default function AdminExercises() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <GlassCard variant="strong" className="p-0 overflow-hidden hover:border-primary/30 transition-colors group">
-                  <div className="relative h-44">
+                <GlassCard variant="strong" className="p-0 hover:border-primary/30 transition-colors group">
+                  <div className="relative h-44 overflow-hidden rounded-t-2xl">
                     <img src={ex.imageUrl} alt={ex.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4">

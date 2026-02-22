@@ -76,7 +76,7 @@ export default function AdminOverview() {
       </div>
 
       {/* Recent activity */}
-      <GlassCard variant="strong">
+      <GlassCard variant="strong" className="p-6">
         <div className="flex items-center gap-2 mb-4">
           <Activity className="w-5 h-5 text-primary" />
           <h3 className="font-semibold text-foreground">Atividade Recente</h3>
