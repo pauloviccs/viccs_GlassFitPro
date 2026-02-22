@@ -14,6 +14,8 @@ export default function AdminStudents() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editStudent, setEditStudent] = useState<User | null>(null);
   const [progressStudent, setProgressStudent] = useState<User | null>(null);
+  const [progressData, setProgressData] = useState({ total: 0, completed: 0 });
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [form, setForm] = useState({ name: '', email: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -65,6 +67,35 @@ export default function AdminStudents() {
     setEditStudent(s);
     setForm({ name: s.name, email: s.email });
     setModalOpen(true);
+  };
+
+  const openProgress = async (student: User) => {
+    setProgressStudent(student);
+    setIsLoadingProgress(true);
+    setProgressData({ total: 0, completed: 0 });
+    try {
+      const { data, error } = await supabase
+        .from('workout_exercises')
+        .select(`
+          completed,
+          workout_days!inner(student_id)
+        `)
+        .eq('workout_days.student_id', student.id);
+
+      if (error) throw error;
+
+      if (data) {
+        setProgressData({
+          total: data.length,
+          completed: data.filter(e => e.completed).length
+        });
+      }
+    } catch (e) {
+      console.error("Erro ao puxar progresso", e);
+      toast({ title: "Erro", description: "Falha ao ler progresso real.", variant: "destructive" });
+    } finally {
+      setIsLoadingProgress(false);
+    }
   };
 
   const handleSave = async () => {
@@ -159,7 +190,7 @@ export default function AdminStudents() {
                   <p className="text-xs font-medium text-muted-foreground truncate uppercase tracking-widest mt-0.5">Aluno Ativo</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setProgressStudent(student)} className="glass rounded-xl p-2.5 hover:bg-secondary transition-colors" title="Progresso">
+                  <button onClick={() => openProgress(student)} className="glass rounded-xl p-2.5 hover:bg-secondary transition-colors" title="Progresso">
                     <BarChart3 className="w-4 h-4 text-foreground" />
                   </button>
                   <button onClick={() => openEdit(student)} className="glass rounded-xl p-2.5 hover:bg-secondary transition-colors" title="Editar">
@@ -238,12 +269,25 @@ export default function AdminStudents() {
                     <button onClick={() => setProgressStudent(null)} className="hover:bg-white/10 p-2 rounded-full transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
                   </div>
 
-                  {/* Aqui futuramente contaremos workouts completados direto do banco. Por hora, simulado visual. */}
-                  <WeeklyProgress completed={0} total={0} />
+                  {isLoadingProgress ? (
+                    <div className="flex justify-center items-center py-8">
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      <WeeklyProgress completed={progressData.completed} total={progressData.total} />
 
-                  <div className="mt-6 glass rounded-2xl p-4 border border-white/5">
-                    <p className="text-sm text-foreground/80 font-medium text-center">Nenhum treino completado na semana para calcular métricas reais.</p>
-                  </div>
+                      <div className="mt-6 glass rounded-2xl p-4 border border-white/5">
+                        {progressData.total > 0 ? (
+                          <p className="text-sm text-foreground/80 font-medium text-center">
+                            {progressData.completed} de {progressData.total} exercícios concluídos na base de dados.
+                          </p>
+                        ) : (
+                          <p className="text-sm text-foreground/80 font-medium text-center">Nenhum treino definido para calcular métricas reais.</p>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </motion.div>
             </div>
