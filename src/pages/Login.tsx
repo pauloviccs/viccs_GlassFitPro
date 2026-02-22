@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -185,6 +186,22 @@ export default function LoginPage() {
                       className="w-full glass-subtle rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
+
+                  <div className="flex items-center space-x-2 pt-1 pb-1">
+                    <input
+                      type="checkbox"
+                      id="remember"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded appearance-none border border-white/20 bg-black/20 checked:bg-primary checked:border-primary cursor-pointer transition-colors relative 
+                               after:content-[''] after:absolute after:inset-0 after:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwb2x5bGluZSBwb2ludHM9IjIwIDYgOSAxNyA0IDEyIj48L3BvbHlsaW5lPjwvc3ZnPg==')] 
+                               after:bg-no-repeat after:bg-center after:bg-[length:10px_10px] after:opacity-0 checked:after:opacity-100"
+                    />
+                    <label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer select-none">
+                      Manter conectado
+                    </label>
+                  </div>
+
                   <AnimatedButton type="submit" variant="primary" size="lg" className="w-full h-12 flex items-center justify-center font-bold" disabled={loadingAction || !email || !password}>
                     {loadingAction ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" /> : 'Acessar Base'}
                   </AnimatedButton>

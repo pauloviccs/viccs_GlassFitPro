@@ -23,6 +23,10 @@ CREATE POLICY "Usuários podem atualizar o próprio profile"
 ON public.profiles FOR UPDATE 
 USING (auth.uid() = id);
 
+CREATE POLICY "Admins podem atualizar qualquer profile" 
+ON public.profiles FOR UPDATE 
+USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+
 CREATE POLICY "Usuários podem inserir o próprio profile" 
 ON public.profiles FOR INSERT 
 WITH CHECK (auth.uid() = id);
