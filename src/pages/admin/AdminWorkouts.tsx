@@ -1,95 +1,179 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { GripVertical, Plus, Trash2, Save, ChevronDown, Check } from 'lucide-react';
+import { GripVertical, Plus, Trash2, Save, ChevronDown, Check, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/button';
-import { useWorkoutStore, WorkoutDay } from '@/store/workoutStore';
-import { Exercise } from '@/store/workoutStore';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/components/ui/use-toast';
 
 const weekDays = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
 
 export default function AdminWorkouts() {
-  const { students, exerciseLibrary, assignWorkoutToStudent } = useWorkoutStore();
-  const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || '');
+  const [students, setStudents] = useState<any[]>([]);
+  const [exerciseLibrary, setExerciseLibrary] = useState<any[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
   const [activeDay, setActiveDay] = useState<string>('Segunda-feira');
+
+  const [dayCacheId, setDayCacheId] = useState<string | null>(null);
+  const [currentDayExercises, setCurrentDayExercises] = useState<any[]>([]);
+
   const [showExerciseList, setShowExerciseList] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Local state for the builder before saving to global store
-  const currentStudent = students.find(s => s.id === selectedStudentId);
+  const { toast } = useToast();
 
-  // Initialize local builder state with current student workouts or empty structure
-  const [builderState, setBuilderState] = useState<WorkoutDay[]>(
-    currentStudent?.workouts || []
-  );
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
 
-  // Sync builder state when student changes
-  useMemo(() => {
-    setBuilderState(students.find(s => s.id === selectedStudentId)?.workouts || []);
-  }, [selectedStudentId, students]);
+  useEffect(() => {
+    if (selectedStudentId) {
+      fetchWorkoutForDay(selectedStudentId, activeDay);
+    }
+  }, [selectedStudentId, activeDay]);
 
+  const fetchInitialData = async () => {
+    setIsLoading(true);
+    try {
+      const [studentsRes, libraryRes] = await Promise.all([
+        supabase.from('profiles').select('id, name').eq('role', 'student'),
+        supabase.from('exercises').select('*').order('created_at', { ascending: false })
+      ]);
 
-  const currentDayExercises = useMemo(() =>
-    builderState.find(d => d.dayOfWeek === activeDay)?.exercises || [],
-    [builderState, activeDay]
-  );
-
-  const addExercise = (exerciseTemplate: Omit<Exercise, 'completed' | 'id'>) => {
-    const newEx: Exercise = {
-      id: `ex-${Date.now()}`,
-      name: exerciseTemplate.name,
-      sets: exerciseTemplate.sets,
-      reps: exerciseTemplate.reps,
-      completed: false,
-    };
-
-    setBuilderState(prev => {
-      const dayExists = prev.find(d => d.dayOfWeek === activeDay);
-      if (dayExists) {
-        return prev.map(d => d.dayOfWeek === activeDay ? { ...d, exercises: [...d.exercises, newEx] } : d);
+      if (studentsRes.data && studentsRes.data.length > 0) {
+        setStudents(studentsRes.data);
+        setSelectedStudentId(studentsRes.data[0].id);
       }
-      return [...prev, { id: `day-${Date.now()}`, dayOfWeek: activeDay, exercises: [newEx] }];
-    });
+      if (libraryRes.data) {
+        setExerciseLibrary(libraryRes.data);
+      }
+    } catch (e) {
+      toast({ title: "Erro", description: "Falha ao carregar alunos e exercícios.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  const fetchWorkoutForDay = async (studentId: string, day: string) => {
+    // 1. Acha o workout_day deste estudante para este dia
+    const { data: dayData } = await supabase
+      .from('workout_days')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('day_of_week', day)
+      .maybeSingle();
+
+    if (!dayData) {
+      setDayCacheId(null);
+      setCurrentDayExercises([]);
+      return;
+    }
+
+    setDayCacheId(dayData.id);
+
+    // 2. Acha os items
+    const { data: items } = await supabase
+      .from('workout_exercises')
+      .select(`*, exercises(*)`)
+      .eq('workout_day_id', dayData.id)
+      .order('order_index', { ascending: true });
+
+    if (items) {
+      // Remapeia para a tipagem que os inputs locais entendem
+      const mapped = items.map(item => ({
+        uid: item.id, // Record na tabela pivot
+        exercise_id: item.exercise_id,
+        name: item.exercises?.name || 'Desconhecido',
+        sets: item.sets,
+        reps: item.reps,
+        order_index: item.order_index
+      }));
+      setCurrentDayExercises(mapped);
+    }
+  };
+
+  const addExercise = (ex: any) => {
+    const newEx = {
+      uid: `temp-${Date.now()}`, // Temporary ID till save
+      exercise_id: ex.id,
+      name: ex.name,
+      sets: ex.default_sets || 3,
+      reps: ex.default_reps || 12,
+      order_index: currentDayExercises.length
+    };
+    setCurrentDayExercises(prev => [...prev, newEx]);
     setShowExerciseList(false);
   };
 
-  const removeExercise = (exerciseId: string) => {
-    setBuilderState(prev => prev.map(d =>
-      d.dayOfWeek === activeDay
-        ? { ...d, exercises: d.exercises.filter(e => e.id !== exerciseId) }
-        : d
-    ));
+  const removeExercise = (uid: string) => {
+    setCurrentDayExercises(prev => prev.filter(e => e.uid !== uid));
   };
 
-
-  const updateExercise = (exerciseId: string, field: 'sets' | 'reps', value: number) => {
-    setBuilderState(prev => prev.map(d =>
-      d.dayOfWeek === activeDay
-        ? { ...d, exercises: d.exercises.map(e => e.id === exerciseId ? { ...e, [field]: value } : e) }
-        : d
-    ));
+  const updateExercise = (uid: string, field: 'sets' | 'reps', value: number) => {
+    setCurrentDayExercises(prev => prev.map(e => e.uid === uid ? { ...e, [field]: value } : e));
   };
 
-  const reorderExercises = (newOrder: Exercise[]) => {
-    setBuilderState(prev => prev.map(d =>
-      d.dayOfWeek === activeDay
-        ? { ...d, exercises: newOrder }
-        : d
-    ));
+  const reorderExercises = (newOrder: any[]) => {
+    setCurrentDayExercises(newOrder);
   };
 
-  const handleSaveWorkout = () => {
+  const handleSaveWorkout = async () => {
+    if (!selectedStudentId) return;
     setIsSaving(true);
-    // Simulate network delay
-    setTimeout(() => {
-      const currentDayWorkout = builderState.find(d => d.dayOfWeek === activeDay);
-      if (currentDayWorkout) {
-        assignWorkoutToStudent(selectedStudentId, currentDayWorkout);
+    try {
+      let currentDayId = dayCacheId;
+
+      // Se não tem Day ID, cria a dimensão do dia primeiro
+      if (!currentDayId) {
+        const { data: newDay, error: dayError } = await supabase
+          .from('workout_days')
+          .insert([{ student_id: selectedStudentId, day_of_week: activeDay }])
+          .select()
+          .single();
+
+        if (dayError) throw dayError;
+        currentDayId = newDay.id;
+        setDayCacheId(newDay.id);
       }
+
+      // Agora deleta as entries atuais brutamente para simplificar e re-insere na ordem certinha ou faz um Upsert massivo (Deletar e recriar é mais limpo no MVP UI Builder)
+      // Como o 'uid' dos temporários não existem no banco, não podemos dar delete in() genérico, então expurgamos o dia.
+      const { error: delError } = await supabase
+        .from('workout_exercises')
+        .delete()
+        .eq('workout_day_id', currentDayId);
+
+      if (delError) throw delError;
+
+      // Salva array na nova ordem
+      if (currentDayExercises.length > 0) {
+        const inserts = currentDayExercises.map((ex, idx) => ({
+          workout_day_id: currentDayId,
+          exercise_id: ex.exercise_id,
+          sets: ex.sets,
+          reps: ex.reps,
+          order_index: idx
+        }));
+
+        const { error: insError } = await supabase.from('workout_exercises').insert(inserts);
+        if (insError) throw insError;
+      }
+
+      toast({ title: "Treino Atualizado!", description: "O cronograma do aluno foi sincronizado." });
+
+      // Refresh IDs from db to avoid 'temp-' bugs on subsequent edit before reload
+      fetchWorkoutForDay(selectedStudentId, activeDay);
+
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Falha", description: "Não foi possível gravar o treino.", variant: "destructive" });
+    } finally {
       setIsSaving(false);
-    }, 600);
+    }
   };
+
+  if (isLoading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>;
 
   return (
     <div className="space-y-6 max-w-4xl pb-10">
@@ -102,6 +186,7 @@ export default function AdminWorkouts() {
             onChange={(e) => setSelectedStudentId(e.target.value)}
             className="w-full glass-subtle rounded-xl px-4 py-3 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 bg-transparent cursor-pointer font-medium"
           >
+            {students.length === 0 && <option value="">Nenhum aluno encontrado (ver aba Alunos)</option>}
             {students.map(s => (
               <option key={s.id} value={s.id} className="bg-background text-foreground">{s.name}</option>
             ))}
@@ -113,7 +198,6 @@ export default function AdminWorkouts() {
       {/* Day tabs */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hidden pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
         {weekDays.map((day) => {
-          const hasExercises = builderState.find(d => d.dayOfWeek === day)?.exercises.length;
           const shortLabel = day.slice(0, 3);
           const isActive = activeDay === day;
 
@@ -126,10 +210,9 @@ export default function AdminWorkouts() {
               {isActive && (
                 <motion.div layoutId="workoutDayTab" className="absolute inset-0 bg-primary/20 rounded-xl" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
               )}
-              <div className={`relative px-5 py-3 rounded-xl text-sm font-medium transition-colors ${isActive ? 'text-primary' : hasExercises ? 'text-foreground glass-subtle hover:bg-white/5' : 'text-muted-foreground hover:bg-white/5'
+              <div className={`relative px-5 py-3 rounded-xl text-sm font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground hover:bg-white/5'
                 }`}>
                 {shortLabel}
-                {hasExercises ? <span className="ml-1.5 text-xs opacity-60 bg-white/10 px-1.5 py-0.5 rounded-sm">({hasExercises})</span> : null}
               </div>
             </button>
           );
@@ -152,7 +235,7 @@ export default function AdminWorkouts() {
           {currentDayExercises.length > 0 ? (
             <Reorder.Group axis="y" values={currentDayExercises} onReorder={reorderExercises} className="space-y-4">
               {currentDayExercises.map((ex) => (
-                <Reorder.Item key={ex.id} value={ex}>
+                <Reorder.Item key={ex.uid} value={ex}>
                   <motion.div
                     layout
                     className="glass-subtle rounded-2xl p-4 flex items-center gap-4 cursor-grab active:cursor-grabbing border border-white/5 hover:border-white/10 transition-colors"
@@ -168,7 +251,7 @@ export default function AdminWorkouts() {
                         <input
                           type="number"
                           value={ex.sets}
-                          onChange={(e) => updateExercise(ex.id, 'sets', +e.target.value)}
+                          onChange={(e) => updateExercise(ex.uid, 'sets', +e.target.value)}
                           className="w-12 text-center glass rounded-lg py-1.5 text-sm font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all bg-black/30"
                         />
                       </div>
@@ -177,11 +260,11 @@ export default function AdminWorkouts() {
                         <input
                           type="number"
                           value={ex.reps}
-                          onChange={(e) => updateExercise(ex.id, 'reps', +e.target.value)}
+                          onChange={(e) => updateExercise(ex.uid, 'reps', +e.target.value)}
                           className="w-12 text-center glass rounded-lg py-1.5 text-sm font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all bg-black/30"
                         />
                       </div>
-                      <button onClick={() => removeExercise(ex.id)} className="p-2.5 rounded-xl hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors mt-4">
+                      <button onClick={() => removeExercise(ex.uid)} className="p-2.5 rounded-xl hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors mt-4">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -207,15 +290,15 @@ export default function AdminWorkouts() {
         size="lg"
         className="w-full flex items-center justify-center gap-2 rounded-2xl h-14"
         onClick={handleSaveWorkout}
-        disabled={currentDayExercises.length === 0 || isSaving}
+        disabled={isSaving || !selectedStudentId}
       >
         {isSaving ? (
           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
-            <Save className="w-5 h-5 opacity-50" />
+            <Loader2 className="w-5 h-5 opacity-80" />
           </motion.div>
         ) : (
           <>
-            <Check className="w-5 h-5" /> Confirmar Alterações do Dia
+            <Save className="w-5 h-5" /> Salvar Treino Baseado no Dia
           </>
         )}
       </Button>
@@ -234,9 +317,9 @@ export default function AdminWorkouts() {
               <div className="glass-strong rounded-3xl p-6 max-h-[75vh] flex flex-col border border-white/10 shadow-2xl">
                 <h2 className="text-lg font-bold text-foreground mb-4">Biblioteca de Exercícios</h2>
                 <div className="space-y-3 overflow-y-auto pr-2 scrollbar-hidden">
-                  {exerciseLibrary.map((ex, idx) => (
+                  {exerciseLibrary.map((ex) => (
                     <button
-                      key={idx}
+                      key={ex.id}
                       onClick={() => addExercise(ex)}
                       className="w-full glass rounded-2xl p-4 flex items-center gap-4 hover:bg-primary/20 transition-colors text-left border border-white/5 focus:outline-none focus:ring-2 focus:ring-primary/50 group"
                     >
@@ -245,13 +328,13 @@ export default function AdminWorkouts() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-foreground">{ex.name}</p>
-                        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mt-1">{ex.sets}x{ex.reps} Padrão</p>
+                        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mt-1">{ex.default_sets}x{ex.default_reps} Padrão</p>
                       </div>
                     </button>
                   ))}
 
                   {exerciseLibrary.length === 0 && (
-                    <p className="text-center text-sm text-muted-foreground py-8">Nenhum exercício na biblioteca ainda.</p>
+                    <p className="text-center text-sm text-muted-foreground py-8">Nenhum exercício na biblioteca. Acesse a aba 'Exercícios'.</p>
                   )}
                 </div>
               </div>

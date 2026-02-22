@@ -15,20 +15,18 @@ const weekDays = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const { currentStudent, markExerciseComplete, setCurrentStudent, students } = useWorkoutStore();
-  const { execute, isLoading } = useSimulatedAsync<void>();
+  const { currentStudent, markExerciseComplete, fetchStudentData, isLoading: storeLoading } = useWorkoutStore();
   const { toast } = useToast();
 
   const [activeDay, setActiveDay] = useState<string>('Segunda-feira');
   const [activeTab, setActiveTab] = useState('home');
 
-  // Fetch initial student data mock based on Auth
+  // Fetch initial student data based on Auth Supabase
   useEffect(() => {
-    if (user?.email) {
-      const found = students.find(s => s.email === user.email) || students[0];
-      setCurrentStudent(found);
+    if (user?.id) {
+      fetchStudentData(user.id);
     }
-  }, [user, students]);
+  }, [user?.id]);
 
   const workoutDays = currentStudent?.workouts || [];
 
@@ -41,9 +39,9 @@ export default function StudentDashboard() {
 
   const toggleComplete = async (exerciseId: string) => {
     try {
-      // Simulate network request before changing state
-      await execute(async () => { }, { delay: 400 });
-      markExerciseComplete(currentDayData.id, exerciseId);
+      // Simulate network request before changing state -> We removed simulation delay 
+      // Because store now has Optimistic Update directly updating the Store and calling API parallel!
+      await markExerciseComplete(currentDayData.id, exerciseId);
     } catch (e) {
       toast({ title: "Erro na conexão", description: "Não foi possível sincronizar o exercício.", variant: "destructive" });
     }
@@ -133,7 +131,7 @@ export default function StudentDashboard() {
 
         {/* Exercise cards List */}
         <AnimatePresence mode="popLayout">
-          {isLoading && currentDayData.exercises.length > 0 ? (
+          {storeLoading ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex justify-center py-10">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </motion.div>
@@ -155,7 +153,7 @@ export default function StudentDashboard() {
                       transition={{ delay: i * 0.1 }}
                     >
                       <ExerciseCard
-                        workoutExercise={{ exercise: ex as any, id: ex.id, reps: ex.reps.toString(), sets: ex.sets.toString(), completed: ex.completed }}
+                        workoutExercise={{ exercise: ex as any, id: ex.id, exerciseId: ex.id, reps: ex.reps, sets: ex.sets, completed: ex.completed }}
                         onToggleComplete={toggleComplete}
                       />
                     </motion.div>

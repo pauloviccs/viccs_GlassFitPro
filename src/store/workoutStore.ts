@@ -1,8 +1,11 @@
 import { create } from 'zustand';
+import { supabase } from '@/lib/supabase';
 
+// Nomes compatíveis com o que usamos no projeto localmente
 export type Exercise = {
   id: string;
   name: string;
+  muscle_group: string;
   sets: number;
   reps: number;
   videoUrl?: string;
@@ -11,7 +14,7 @@ export type Exercise = {
 };
 
 export type WorkoutDay = {
-  id: string;
+  id: string; // Day ID from supabase
   dayOfWeek: string;
   exercises: Exercise[];
 };
@@ -25,104 +28,143 @@ export type Student = {
 };
 
 interface WorkoutStore {
-  // Current Student State
   currentStudent: Student | null;
-  setCurrentStudent: (student: Student) => void;
-  markExerciseComplete: (dayId: string, exerciseId: string) => void;
+  isLoading: boolean;
 
-  // Admin State
-  students: Student[];
-  exerciseLibrary: Omit<Exercise, 'completed' | 'id'>[];
-  
-  // Actions
-  addStudent: (student: Student) => void;
-  addExerciseToLibrary: (exercise: Omit<Exercise, 'completed' | 'id'>) => void;
-  assignWorkoutToStudent: (studentId: string, workout: WorkoutDay) => void;
+  // Ações para o Estudante
+  fetchStudentData: (studentId: string) => Promise<void>;
+  markExerciseComplete: (dayId: string, exerciseId: string) => Promise<void>;
+
+  // Variáveis antigas deixadas como null/vazio pra não quebrar imports que não foram apagados
+  students: any[];
+  exerciseLibrary: any[];
+  addStudent: (s: any) => void;
+  addExerciseToLibrary: (e: any) => void;
+  assignWorkoutToStudent: (id: string, w: any) => void;
 }
 
-// Mock Data
-const MOCK_STUDENTS: Student[] = [
-  {
-    id: '1',
-    name: 'Paulo Vinicios',
-    email: 'paulo@viccs.com',
-    weeklyProgress: 0,
-    workouts: [
-      {
-        id: 'd1',
-        dayOfWeek: 'Segunda-feira',
-        exercises: [
-          { id: 'e1', name: 'Supino Reto', sets: 4, reps: 10, completed: false },
-          { id: 'e2', name: 'Crucifixo Inclinado', sets: 3, reps: 12, completed: false },
-        ]
-      },
-      {
-        id: 'd2',
-        dayOfWeek: 'Terça-feira',
-        exercises: [
-          { id: 'e3', name: 'Agachamento Livre', sets: 4, reps: 8, completed: false },
-          { id: 'e4', name: 'Leg Press 45', sets: 3, reps: 15, completed: false },
-        ]
-      }
-    ]
-  }
-];
+export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
+  currentStudent: null,
+  isLoading: true,
+  students: [],
+  exerciseLibrary: [],
+  addStudent: () => { },
+  addExerciseToLibrary: () => { },
+  assignWorkoutToStudent: () => { },
 
-export const useWorkoutStore = create<WorkoutStore>((set) => ({
-  currentStudent: MOCK_STUDENTS[0],
-  students: MOCK_STUDENTS,
-  exerciseLibrary: [
-    { name: 'Supino Reto', sets: 4, reps: 10 },
-    { name: 'Agachamento Livre', sets: 4, reps: 8 },
-    { name: 'Desenvolvimento c/ Halteres', sets: 3, reps: 12 },
-  ],
+  fetchStudentData: async (studentId: string) => {
+    set({ isLoading: true });
+    try {
+      // 1. Pega os Dados do Estudante
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', studentId).single();
 
-  setCurrentStudent: (student) => set({ currentStudent: student }),
+      // 2. Pega todos os Dias cadastrados
+      const { data: days } = await supabase.from('workout_days').select('*').eq('student_id', studentId);
 
-  markExerciseComplete: (dayId, exerciseId) => 
-    set((state) => {
-      if (!state.currentStudent) return state;
+      // 3. Pega todos os Exercícios destes dias
+      let processedWorkouts: WorkoutDay[] = [];
 
-      const updatedWorkouts = state.currentStudent.workouts.map(day => {
-        if (day.id === dayId) {
+      if (days && days.length > 0) {
+        const dayIds = days.map(d => d.id);
+        const { data: exercisesData } = await supabase
+          .from('workout_exercises')
+          .select(`*, exercises(*)`)
+          .in('workout_day_id', dayIds)
+          .order('order_index');
+
+        processedWorkouts = days.map(d => {
+          const itemsForThisDay = (exercisesData || []).filter(ex => ex.workout_day_id === d.id);
+
           return {
-            ...day,
-            exercises: day.exercises.map(ex => 
-              ex.id === exerciseId ? { ...ex, completed: !ex.completed } : ex
-            )
+            id: d.id,
+            dayOfWeek: d.day_of_week,
+            exercises: itemsForThisDay.map(it => ({
+              id: it.id, // O ID do pivot é o importante pro Update
+              name: it.exercises?.name || 'Desconhecido',
+              muscle_group: it.exercises?.muscle_group || '',
+              sets: it.sets,
+              reps: it.reps,
+              videoUrl: it.exercises?.video_url,
+              imageUrl: it.exercises?.image_url,
+              completed: it.completed
+            }))
           };
-        }
-        return day;
+        });
+      }
+
+      // Calcula progresso base da semana inteira
+      let total = 0; let comp = 0;
+      processedWorkouts.forEach(d => {
+        total += d.exercises.length;
+        comp += d.exercises.filter(e => e.completed).length;
       });
+      const progress = total > 0 ? Math.round((comp / total) * 100) : 0;
 
-      // Recalculate progress
-      const totalExercises = updatedWorkouts.reduce((acc, day) => acc + day.exercises.length, 0);
-      const completedExercises = updatedWorkouts.reduce((acc, day) => 
-        acc + day.exercises.filter(ex => ex.completed).length, 0
-      );
-      
-      const progress = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
+      if (profile) {
+        set({
+          currentStudent: {
+            id: profile.id,
+            name: profile.name,
+            email: profile.email || '', // Na V2 real o email pode não estar no profile, só no user.
+            weeklyProgress: progress,
+            workouts: processedWorkouts
+          }
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 
-      return {
-        currentStudent: {
-          ...state.currentStudent,
-          workouts: updatedWorkouts,
-          weeklyProgress: progress
-        }
-      };
-    }),
+  markExerciseComplete: async (dayId: string, exerciseId: string) => {
+    const state = get();
+    if (!state.currentStudent) return;
 
-  addStudent: (student) => set((state) => ({ students: [...state.students, student] })),
-  
-  addExerciseToLibrary: (exercise) => set((state) => ({ 
-    exerciseLibrary: [...state.exerciseLibrary, exercise] 
-  })),
+    let newToggleState = true;
 
-  assignWorkoutToStudent: (studentId, workout) => set((state) => ({
-    students: state.students.map(s => 
-      s.id === studentId 
-        ? { ...s, workouts: [...s.workouts, workout] }
-        : s
-    )
-  }))
+    // 1. Optimistic Update Local no UI (Imediato)
+    const updatedWorkouts = state.currentStudent.workouts.map(day => {
+      if (day.id === dayId) {
+        return {
+          ...day,
+          exercises: day.exercises.map(ex => {
+            if (ex.id === exerciseId) {
+              newToggleState = !ex.completed;
+              return { ...ex, completed: newToggleState };
+            }
+            return ex;
+          })
+        };
+      }
+      return day;
+    });
+
+    // Recalcular métricas pós update UI
+    let total = 0; let comp = 0;
+    updatedWorkouts.forEach(d => {
+      total += d.exercises.length;
+      comp += d.exercises.filter(e => e.completed).length;
+    });
+    const progress = total > 0 ? Math.round((comp / total) * 100) : 0;
+
+    set({
+      currentStudent: {
+        ...state.currentStudent,
+        workouts: updatedWorkouts,
+        weeklyProgress: progress
+      }
+    });
+
+    // 2. Firing request ao backend paralalelo, sem travar (Sem await que segure tela)
+    supabase.from('workout_exercises').update({ completed: newToggleState }).eq('id', exerciseId).then(({ error }) => {
+      if (error) {
+        console.error("Falha ao salvar completion no supabase", error);
+        // Na vida real a gente daria Rollback do state se falhasse. 
+        // Mas como MVP, confiamos na rede do usuário.
+      }
+    });
+  },
+
 }));

@@ -16,7 +16,16 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'student' | 'admin' }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) return <Navigate to="/" replace />;
   if (requiredRole && user?.role !== requiredRole) {
     return <Navigate to={user?.role === 'admin' ? '/admin' : '/student'} replace />;

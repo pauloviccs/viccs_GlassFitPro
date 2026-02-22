@@ -1,54 +1,119 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { User, UserRole } from '@/types';
-import { mockStudents, mockAdmin } from '@/data/mockData';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User as AppUser, UserRole } from '@/types';
+import { supabase } from '@/lib/supabase';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string, role: UserRole) => Promise<boolean>;
-  logout: () => void;
+  isLoading: boolean;
+  signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, pass: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = useCallback(async (email: string, _password: string): Promise<boolean> => {
-    // Simulated auth - check admin first then students
-    if (email === mockAdmin.email) {
-      setUser(mockAdmin);
-      return true;
-    }
-    const student = mockStudents.find(s => s.email === email);
-    if (student) {
-      setUser(student);
-      return true;
-    }
-    // Default: login as first student for demo
-    setUser(mockStudents[0]);
-    return true;
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        syncProfile(session.user);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      setSession(currentSession);
+      if (currentSession) {
+        syncProfile(currentSession.user);
+      } else {
+        setUser(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const signup = useCallback(async (name: string, email: string, _password: string, role: UserRole): Promise<boolean> => {
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      name,
+  const syncProfile = async (authUser: SupabaseUser) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      if (data) {
+        setUser({
+          id: data.id,
+          name: data.name,
+          email: authUser.email || '',
+          role: data.role as UserRole,
+          createdAt: data.created_at,
+        });
+      } else {
+        // Se usuário não tem perfil explícito na tabela, tenta deduzir.
+        // E-mail estrito para administrador:
+        const isAdmin = authUser.email === 'pauloviccsdesign@gmail.com';
+        const role = isAdmin ? 'admin' : 'student';
+
+        const newProfile = {
+          id: authUser.id,
+          name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuário',
+          role: role,
+        };
+
+        const { error: insertError } = await supabase.from('profiles').insert([newProfile]);
+
+        if (insertError) {
+          console.error("Erro ao criar perfil. Verifique se a tabela 'profiles' existe.", insertError);
+        }
+
+        setUser({
+          id: newProfile.id,
+          name: newProfile.name,
+          email: authUser.email || '',
+          role: newProfile.role as UserRole,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } catch (e) {
+      console.error("Erro no AuthContext:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+  };
+
+  const signInWithEmail = async (email: string, pass: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      role,
-      createdAt: new Date().toISOString(),
-    };
-    setUser(newUser);
-    return true;
-  }, []);
+      password: pass,
+    });
+    if (error) throw error;
+  };
 
-  const logout = useCallback(() => {
-    setUser(null);
-  }, []);
+  const logout = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, signInWithGoogle, signInWithEmail, logout }}>
       {children}
     </AuthContext.Provider>
   );
