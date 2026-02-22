@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Edit2, Trash2, X, BarChart3, Loader2 } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, X, BarChart3, Loader2, CheckCircle2, Circle } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { AnimatedButton } from '@/components/AnimatedButton';
 import { WeeklyProgress } from '@/components/WeeklyProgress';
@@ -14,7 +14,7 @@ export default function AdminStudents() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editStudent, setEditStudent] = useState<User | null>(null);
   const [progressStudent, setProgressStudent] = useState<User | null>(null);
-  const [progressData, setProgressData] = useState({ total: 0, completed: 0 });
+  const [progressData, setProgressData] = useState<{ total: number; completed: number; details: any[] }>({ total: 0, completed: 0, details: [] });
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [form, setForm] = useState({ name: '', email: '' });
   const [isLoading, setIsLoading] = useState(true);
@@ -72,13 +72,17 @@ export default function AdminStudents() {
   const openProgress = async (student: User) => {
     setProgressStudent(student);
     setIsLoadingProgress(true);
-    setProgressData({ total: 0, completed: 0 });
+    setProgressData({ total: 0, completed: 0, details: [] });
     try {
       const { data, error } = await supabase
         .from('workout_exercises')
         .select(`
+          id,
           completed,
-          workout_days!inner(student_id)
+          sets,
+          reps,
+          exercises ( name ),
+          workout_days!inner(student_id, day_of_week)
         `)
         .eq('workout_days.student_id', student.id);
 
@@ -87,7 +91,8 @@ export default function AdminStudents() {
       if (data) {
         setProgressData({
           total: data.length,
-          completed: data.filter(e => e.completed).length
+          completed: data.filter(e => e.completed).length,
+          details: data
         });
       }
     } catch (e) {
@@ -158,7 +163,7 @@ export default function AdminStudents() {
           />
         </div>
         <AnimatedButton onClick={openAdd} className="flex items-center justify-center gap-2">
-          <Plus className="w-4 h-4" /> Cadastrar Manual (V2)
+          <Plus className="w-4 h-4" /> Cadastrar Manual (WIP)
         </AnimatedButton>
       </div>
 
@@ -277,15 +282,38 @@ export default function AdminStudents() {
                     <>
                       <WeeklyProgress completed={progressData.completed} total={progressData.total} />
 
-                      <div className="mt-6 glass rounded-2xl p-4 border border-white/5">
-                        {progressData.total > 0 ? (
-                          <p className="text-sm text-foreground/80 font-medium text-center">
-                            {progressData.completed} de {progressData.total} exercícios concluídos na base de dados.
-                          </p>
-                        ) : (
+                      {progressData.total > 0 ? (
+                        <div className="mt-6 space-y-3 max-h-[50vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Detalhamento da Semana</p>
+                          {progressData.details.map((item: any) => (
+                            <div key={item.id} className="glass-subtle rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-white/5">
+                              <div>
+                                <p className="text-sm font-bold text-foreground">{item.exercises?.name || 'Exercício Desconhecido'}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {item.workout_days?.day_of_week} • {item.sets} Séries x {item.reps} Reps
+                                </p>
+                              </div>
+                              <div className="flex-shrink-0">
+                                {item.completed ? (
+                                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success/10 text-success border border-success/20 w-fit">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span className="text-xs font-bold">Concluído</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-muted-foreground border border-white/10 w-fit">
+                                    <Circle className="w-4 h-4" />
+                                    <span className="text-xs font-medium">Pendente</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-6 glass rounded-2xl p-4 border border-white/5">
                           <p className="text-sm text-foreground/80 font-medium text-center">Nenhum treino definido para calcular métricas reais.</p>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
