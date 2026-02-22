@@ -1,8 +1,29 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform } from 'framer-motion';
-import { Check, Play, ChevronRight } from 'lucide-react';
+import { Check, Play, ChevronRight, X } from 'lucide-react';
 import { WorkoutExercise } from '@/types';
 import { cn } from '@/lib/utils';
+
+const getEmbedUrl = (url: string) => {
+  if (!url) return '';
+  try {
+    if (url.includes('youtu.be/')) {
+      const id = url.split('youtu.be/')[1]?.split('?')[0];
+      return `https://www.youtube.com/embed/${id}?autoplay=1`;
+    }
+    if (url.includes('youtube.com/watch')) {
+      const urlObj = new URL(url);
+      const id = urlObj.searchParams.get('v');
+      return id ? `https://www.youtube.com/embed/${id}?autoplay=1` : url;
+    }
+    if (url.includes('youtube.com/embed/')) {
+      return url.includes('?') ? `${url}&autoplay=1` : `${url}?autoplay=1`;
+    }
+    return url;
+  } catch {
+    return url;
+  }
+};
 
 interface ExerciseCardProps {
   workoutExercise: WorkoutExercise;
@@ -83,12 +104,13 @@ export function ExerciseCard({ workoutExercise, onToggleComplete }: ExerciseCard
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0"
+                className="absolute inset-0 z-10 bg-black"
+                onPointerDownCapture={(e) => e.stopPropagation()} // Impede o drag sobre o vídeo
               >
                 <iframe
-                  src={exercise.videoUrl}
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+                  src={getEmbedUrl(exercise.videoUrl)}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
               </motion.div>
@@ -106,12 +128,13 @@ export function ExerciseCard({ workoutExercise, onToggleComplete }: ExerciseCard
           </AnimatePresence>
 
           {exercise.videoUrl && (
-            <button
+            <motion.button
+              onPointerDownCapture={(e) => e.stopPropagation()}
               onClick={() => setShowVideo(!showVideo)}
-              className="absolute top-3 right-3 glass rounded-full p-2 hover:scale-105 transition-transform"
+              className="absolute top-3 right-3 z-30 glass rounded-full p-2 hover:scale-105 transition-transform bg-black/40 hover:bg-black/60 shadow-xl border border-white/10"
             >
-              <Play className="w-4 h-4 text-foreground" />
-            </button>
+              {showVideo ? <X className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white" />}
+            </motion.button>
           )}
 
           {completed && (
