@@ -4,10 +4,15 @@ import { Users, Dumbbell, CalendarDays, TrendingUp, Activity, Loader2 } from 'lu
 import { GlassCard } from '@/components/ui/GlassCard';
 import { supabase } from '@/lib/supabase';
 
-const recentActivity = [
-  { text: 'Funcionalidade de logs reais em breve (V3)', time: 'agora' },
-  { text: 'Os dados acima agora refletem o banco real!', time: 'agora' }
-];
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+interface ActivityLog {
+  id: string;
+  text: string;
+  time: string;
+  date: Date;
+}
 
 export default function AdminOverview() {
   const [counts, setCounts] = useState({
@@ -16,30 +21,84 @@ export default function AdminOverview() {
     workouts: 0,
     completionRate: '0%'
   });
+  const [recentActivity, setRecentActivity] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStats() {
       setIsLoading(true);
       try {
-        const [studentsRes, exercisesRes, workoutsRes] = await Promise.all([
+        const [
+          studentsRes,
+          exercisesRes,
+          workoutsRes,
+          workoutExercisesRes,
+          recentStudentsRes,
+          recentExercisesRes
+        ] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
           supabase.from('exercises').select('id', { count: 'exact', head: true }),
-          supabase.from('workout_days').select('id', { count: 'exact', head: true })
+          supabase.from('workout_days').select('id', { count: 'exact', head: true }),
+          supabase.from('workout_exercises').select('completed'),
+          supabase.from('profiles').select('id, name, created_at').eq('role', 'student').order('created_at', { ascending: false }).limit(3),
+          supabase.from('exercises').select('id, name, created_at').order('created_at', { ascending: false }).limit(3)
         ]);
+
+        // Calcula a taxa de conclusão real
+        let completionRate = '0%';
+        if (workoutExercisesRes.data && workoutExercisesRes.data.length > 0) {
+          const totalExercises = workoutExercisesRes.data.length;
+          const completedExercises = workoutExercisesRes.data.filter(e => e.completed).length;
+          completionRate = Math.round((completedExercises / totalExercises) * 100) + '%';
+        }
 
         setCounts({
           students: studentsRes.count || 0,
           exercises: exercisesRes.count || 0,
           workouts: workoutsRes.count || 0,
-          completionRate: '0%' // Em breve calcularemos isso
+          completionRate
         });
+
+        // Montar logs de atividade recente misturando estudantes e exercícios
+        const logs: ActivityLog[] = [];
+
+        if (recentStudentsRes.data) {
+          recentStudentsRes.data.forEach(s => {
+            logs.push({
+              id: `stu-${s.id}`,
+              text: `Novo aluno "${s.name}" adicionado a plataforma`,
+              date: new Date(s.created_at),
+              time: formatDistanceToNow(new Date(s.created_at), { addSuffix: true, locale: ptBR })
+            });
+          });
+        }
+
+        if (recentExercisesRes.data) {
+          recentExercisesRes.data.forEach(e => {
+            logs.push({
+              id: `ex-${e.id}`,
+              text: `Novo exercício "${e.name}" cadastrado na biblioteca`,
+              date: new Date(e.created_at),
+              time: formatDistanceToNow(new Date(e.created_at), { addSuffix: true, locale: ptBR })
+            });
+          });
+        }
+
+        // Ordena tudo do mais recente pro mais antigo e pega os 5 primeiros
+        const sortedLogs = logs.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5);
+
+        if (sortedLogs.length === 0) {
+          sortedLogs.push({ id: 'empty', text: 'Nenhuma atividade recente encontrada no banco de dados.', time: '', date: new Date() });
+        }
+
+        setRecentActivity(sortedLogs);
       } catch (e) {
         console.error("Erro ao puxar estatísticas", e);
       } finally {
         setIsLoading(false);
       }
     }
+
     fetchStats();
   }, []);
 
@@ -84,7 +143,7 @@ export default function AdminOverview() {
         <div className="space-y-3">
           {recentActivity.map((item, i) => (
             <motion.div
-              key={i}
+              key={item.id}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 + i * 0.1 }}
