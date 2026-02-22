@@ -6,7 +6,7 @@ viccs_GlassFitPro
 
 ## Description
 
-GlassFit Pro is a modern, responsive web application for managing workouts and fitness training. It features dedicated portals for students to access their workouts and for administrators/professors to manage students, exercises, and workout schedules. The application employs a sleek glassmorphic UI design and utilizes Supabase as a backend for real-time data persistence and authentication.
+GlassFit Pro is a modern, responsive web application for managing workouts and fitness training. It features dedicated portals for students to access their workouts and for administrators/professors to manage students, exercises, and workout schedules. The application employs a sleek glassmorphic UI design and utilizes Supabase as a backend for real-time data persistence, row-level security (RLS), and authentication. Recent updates include synchronization of real-time student progress to the admin dashboard and a refined presentation README.
 
 ## Tech Stack
 
@@ -14,7 +14,7 @@ GlassFit Pro is a modern, responsive web application for managing workouts and f
 - **Frameworks/Libraries:** React (Vite), Framer Motion, Tailwind CSS, shadcn/ui, Radix UI
 - **State Management:** Zustand, React Context
 - **Tools:** Vite, Lucide React, ESLint
-- **Services:** Supabase (Database, Auth, RLS)
+- **Services:** Supabase (Database, Auth, Row Level Security)
 
 ## Folder Structure
 
@@ -24,7 +24,7 @@ viccs_GlassFitPro/
 ├── public/                # Static public assets
 ├── src/                   # Main application source code
 │   ├── components/        # Reusable view components (UI, layouts, widgets)
-│   ├── contexts/          # React contexts (AuthContext.tsx)
+│   ├── contexts/          # React contexts (e.g., AuthContext.tsx)
 │   ├── data/              # Initial or static data files
 │   ├── hooks/             # Custom React hooks
 │   ├── lib/               # Utility scripts (Supabase client configuration)
