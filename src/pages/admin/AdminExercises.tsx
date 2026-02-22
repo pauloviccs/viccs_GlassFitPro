@@ -241,70 +241,72 @@ export default function AdminExercises() {
         {modalOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md" onClick={() => setModalOpen(false)} />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-lg"
-            >
-              <div className="glass-strong border border-white/10 shadow-2xl rounded-3xl p-6 max-h-[85vh] flex flex-col">
-                <div className="flex items-center justify-between mb-6 shrink-0">
-                  <h2 className="text-xl font-bold text-foreground">{editExercise ? 'Editar Exercício' : 'Novo Exercício da Base'}</h2>
-                  <button onClick={() => setModalOpen(false)} className="hover:bg-white/10 p-2 rounded-full transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
-                </div>
-
-                <div className="space-y-4 overflow-y-auto pr-2 scrollbar-hidden">
-                  <div className="space-y-1.5">
-                    <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Nome do Exercício</label>
-                    <input placeholder="Ex: Supino Reto com Halteres" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} className="w-full glass-subtle rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium" />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-full max-w-lg pointer-events-auto"
+              >
+                <div className="glass-strong border border-white/10 shadow-2xl rounded-3xl p-6 max-h-[85vh] flex flex-col">
+                  <div className="flex items-center justify-between mb-6 shrink-0">
+                    <h2 className="text-xl font-bold text-foreground">{editExercise ? 'Editar Exercício' : 'Novo Exercício da Base'}</h2>
+                    <button onClick={() => setModalOpen(false)} className="hover:bg-white/10 p-2 rounded-full transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Foco Muscular</label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {muscleGroups.filter(g => g !== 'Todos').map(g => (
-                        <button
-                          key={g}
-                          type="button"
-                          onClick={() => setForm(f => ({ ...f, muscleGroup: g }))}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${form.muscleGroup === g ? 'bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20' : 'glass-subtle border-white/5 text-muted-foreground hover:bg-white/10'
-                            }`}
-                        >
-                          {g}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-4 overflow-y-auto pr-2 scrollbar-hidden">
                     <div className="space-y-1.5">
-                      <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Séries Padrão</label>
-                      <input type="number" min="1" value={form.defaultSets} onChange={(e) => setForm(f => ({ ...f, defaultSets: +e.target.value }))} className="w-full glass-subtle rounded-xl px-4 py-3 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                      <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Nome do Exercício</label>
+                      <input placeholder="Ex: Supino Reto com Halteres" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} className="w-full glass-subtle rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium" />
                     </div>
+
                     <div className="space-y-1.5">
-                      <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Reps Padrão</label>
-                      <input type="number" min="1" value={form.defaultReps} onChange={(e) => setForm(f => ({ ...f, defaultReps: +e.target.value }))} className="w-full glass-subtle rounded-xl px-4 py-3 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                      <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Foco Muscular</label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {muscleGroups.filter(g => g !== 'Todos').map(g => (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, muscleGroup: g }))}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${form.muscleGroup === g ? 'bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20' : 'glass-subtle border-white/5 text-muted-foreground hover:bg-white/10'
+                              }`}
+                          >
+                            {g}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-1.5 pt-2">
-                    <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Instruções / Dicas (Opcional)</label>
-                    <textarea placeholder="Lembre-se de contrair o abdômen..." value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} className="w-full glass-subtle rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[80px] resize-none" />
-                  </div>
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div className="space-y-1.5">
+                        <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Séries Padrão</label>
+                        <input type="number" min="1" value={form.defaultSets} onChange={(e) => setForm(f => ({ ...f, defaultSets: +e.target.value }))} className="w-full glass-subtle rounded-xl px-4 py-3 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Reps Padrão</label>
+                        <input type="number" min="1" value={form.defaultReps} onChange={(e) => setForm(f => ({ ...f, defaultReps: +e.target.value }))} className="w-full glass-subtle rounded-xl px-4 py-3 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                      </div>
+                    </div>
 
-                  <div className="space-y-1.5 pt-2">
-                    <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Mídia URL (Opcional)</label>
-                    <input placeholder="https://youtube.com/..." value={form.videoUrl} onChange={(e) => setForm(f => ({ ...f, videoUrl: e.target.value }))} className="w-full glass-subtle rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                  </div>
+                    <div className="space-y-1.5 pt-2">
+                      <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Instruções / Dicas (Opcional)</label>
+                      <textarea placeholder="Lembre-se de contrair o abdômen..." value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} className="w-full glass-subtle rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[80px] resize-none" />
+                    </div>
 
-                  <div className="pt-4">
-                    <AnimatedButton onClick={handleSave} className="w-full h-12" disabled={isSaving}>
-                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : (editExercise ? 'Salvar Base' : 'Adicionar ao Banco')}
-                    </AnimatedButton>
+                    <div className="space-y-1.5 pt-2">
+                      <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Mídia URL (Opcional)</label>
+                      <input placeholder="https://youtube.com/..." value={form.videoUrl} onChange={(e) => setForm(f => ({ ...f, videoUrl: e.target.value }))} className="w-full glass-subtle rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+
+                    <div className="pt-4">
+                      <AnimatedButton onClick={handleSave} className="w-full h-12" disabled={isSaving}>
+                        {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : (editExercise ? 'Salvar Base' : 'Adicionar ao Banco')}
+                      </AnimatedButton>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

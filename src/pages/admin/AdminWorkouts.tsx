@@ -308,37 +308,39 @@ export default function AdminWorkouts() {
         {showExerciseList && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md" onClick={() => setShowExerciseList(false)} />
-            <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 30, scale: 0.95 }}
-              className="fixed left-1/2 top-1/2 z-[60] -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md"
-            >
-              <div className="glass-strong rounded-3xl p-6 max-h-[75vh] flex flex-col border border-white/10 shadow-2xl">
-                <h2 className="text-lg font-bold text-foreground mb-4">Biblioteca de Exercícios</h2>
-                <div className="space-y-3 overflow-y-auto pr-2 scrollbar-hidden">
-                  {exerciseLibrary.map((ex) => (
-                    <button
-                      key={ex.id}
-                      onClick={() => addExercise(ex)}
-                      className="w-full glass rounded-2xl p-4 flex items-center gap-4 hover:bg-primary/20 transition-colors text-left border border-white/5 focus:outline-none focus:ring-2 focus:ring-primary/50 group"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-black/30 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
-                        <Plus className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{ex.name}</p>
-                        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mt-1">{ex.default_sets}x{ex.default_reps} Padrão</p>
-                      </div>
-                    </button>
-                  ))}
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 30, scale: 0.95 }}
+                className="w-full max-w-md pointer-events-auto"
+              >
+                <div className="glass-strong rounded-3xl p-6 max-h-[75vh] flex flex-col border border-white/10 shadow-2xl">
+                  <h2 className="text-lg font-bold text-foreground mb-4">Biblioteca de Exercícios</h2>
+                  <div className="space-y-3 overflow-y-auto pr-2 scrollbar-hidden">
+                    {exerciseLibrary.map((ex) => (
+                      <button
+                        key={ex.id}
+                        onClick={() => addExercise(ex)}
+                        className="w-full glass rounded-2xl p-4 flex items-center gap-4 hover:bg-primary/20 transition-colors text-left border border-white/5 focus:outline-none focus:ring-2 focus:ring-primary/50 group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-black/30 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+                          <Plus className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">{ex.name}</p>
+                          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mt-1">{ex.default_sets}x{ex.default_reps} Padrão</p>
+                        </div>
+                      </button>
+                    ))}
 
-                  {exerciseLibrary.length === 0 && (
-                    <p className="text-center text-sm text-muted-foreground py-8">Nenhum exercício na biblioteca. Acesse a aba 'Exercícios'.</p>
-                  )}
+                    {exerciseLibrary.length === 0 && (
+                      <p className="text-center text-sm text-muted-foreground py-8">Nenhum exercício na biblioteca. Acesse a aba 'Exercícios'.</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

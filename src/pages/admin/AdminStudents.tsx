@@ -180,40 +180,42 @@ export default function AdminStudents() {
         {modalOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md" onClick={() => setModalOpen(false)} />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md"
-            >
-              <div className="glass-strong border border-white/10 shadow-2xl rounded-3xl p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-foreground">{editStudent ? 'Editar Aluno' : 'Convite de Aluno'}</h2>
-                  <button onClick={() => setModalOpen(false)} className="hover:bg-white/10 p-2 rounded-full transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
-                </div>
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Nome Completo</label>
-                    <input
-                      placeholder="Nome"
-                      value={form.name}
-                      onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                      className="w-full glass-subtle rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-full max-w-md pointer-events-auto"
+              >
+                <div className="glass-strong border border-white/10 shadow-2xl rounded-3xl p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-foreground">{editStudent ? 'Editar Aluno' : 'Convite de Aluno'}</h2>
+                    <button onClick={() => setModalOpen(false)} className="hover:bg-white/10 p-2 rounded-full transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
                   </div>
-
-                  {!editStudent && (
-                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
-                      <p className="text-xs text-primary font-medium">Na versão atual, novos alunos devem realizar o Login com a conta Google pelo site diretamente.</p>
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Nome Completo</label>
+                      <input
+                        placeholder="Nome"
+                        value={form.name}
+                        onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+                        className="w-full glass-subtle rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
                     </div>
-                  )}
 
-                  <AnimatedButton onClick={handleSave} className="w-full mt-4 h-12" disabled={isSaving}>
-                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : (editStudent ? 'Salvar Edição' : 'Entendi')}
-                  </AnimatedButton>
+                    {!editStudent && (
+                      <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                        <p className="text-xs text-primary font-medium">Na versão atual, novos alunos devem realizar o Login com a conta Google pelo site diretamente.</p>
+                      </div>
+                    )}
+
+                    <AnimatedButton onClick={handleSave} className="w-full mt-4 h-12" disabled={isSaving}>
+                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : (editStudent ? 'Salvar Edição' : 'Entendi')}
+                    </AnimatedButton>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>
@@ -223,26 +225,28 @@ export default function AdminStudents() {
         {progressStudent && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md" onClick={() => setProgressStudent(null)} />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md"
-            >
-              <div className="glass-strong rounded-3xl border border-white/10 shadow-2xl p-6">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-xl font-bold text-foreground truncate">Progresso - <span className="text-primary">{progressStudent.name.split(' ')[0]}</span></h2>
-                  <button onClick={() => setProgressStudent(null)} className="hover:bg-white/10 p-2 rounded-full transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
-                </div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-full max-w-md pointer-events-auto"
+              >
+                <div className="glass-strong rounded-3xl border border-white/10 shadow-2xl p-6">
+                  <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-xl font-bold text-foreground truncate">Progresso - <span className="text-primary">{progressStudent.name.split(' ')[0]}</span></h2>
+                    <button onClick={() => setProgressStudent(null)} className="hover:bg-white/10 p-2 rounded-full transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
+                  </div>
 
-                {/* Aqui futuramente contaremos workouts completados direto do banco. Por hora, simulado visual. */}
-                <WeeklyProgress completed={0} total={0} />
+                  {/* Aqui futuramente contaremos workouts completados direto do banco. Por hora, simulado visual. */}
+                  <WeeklyProgress completed={0} total={0} />
 
-                <div className="mt-6 glass rounded-2xl p-4 border border-white/5">
-                  <p className="text-sm text-foreground/80 font-medium text-center">Nenhum treino completado na semana para calcular métricas reais.</p>
+                  <div className="mt-6 glass rounded-2xl p-4 border border-white/5">
+                    <p className="text-sm text-foreground/80 font-medium text-center">Nenhum treino completado na semana para calcular métricas reais.</p>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

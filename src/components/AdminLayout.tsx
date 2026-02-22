@@ -14,7 +14,6 @@ const sidebarItems = [
   { icon: Users, label: "Meus Alunos", path: "/admin/students" },
   { icon: Dumbbell, label: "Biblioteca de Exercícios", path: "/admin/exercises" },
   { icon: CalendarDays, label: "Workout Builder", path: "/admin/workouts" },
-  { icon: Settings, label: "Configurações", path: "/admin/settings" },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {

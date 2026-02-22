@@ -10,9 +10,10 @@ CREATE TABLE public.profiles (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Policies para Profiles
-CREATE POLICY "Admins podem ver todos os profiles" 
+CREATE POLICY "Leitura de Profiles (necessário para checar role sem recursão)" 
 ON public.profiles FOR SELECT 
-USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+TO authenticated
+USING ( true );
 
 CREATE POLICY "Usuários podem ver o próprio profile" 
 ON public.profiles FOR SELECT 

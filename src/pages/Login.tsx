@@ -169,7 +169,7 @@ export default function LoginPage() {
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="email"
-                      placeholder="E-mail (pauloviccsdesign@gmail.com)"
+                      placeholder="E-mail"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full glass-subtle rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
