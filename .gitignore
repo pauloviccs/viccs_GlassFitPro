@@ -25,3 +25,6 @@ dist-ssr
 
 # Agent
 .agent
+.agent/*
+.agent/**
+.agent/**/**
