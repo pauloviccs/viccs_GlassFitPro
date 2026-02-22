@@ -10,6 +10,7 @@ export type Exercise = {
   reps: number;
   videoUrl?: string;
   imageUrl?: string;
+  description?: string;
   completed: boolean;
 };
 
@@ -86,6 +87,7 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
               reps: it.reps,
               videoUrl: it.exercises?.video_url,
               imageUrl: it.exercises?.image_url,
+              description: it.exercises?.description || '',
               completed: it.completed
             }))
           };
