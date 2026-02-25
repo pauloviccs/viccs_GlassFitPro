@@ -8,6 +8,7 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { HomeWorkoutTab } from '@/components/student/HomeWorkoutTab';
 import { ProgressTab } from '@/components/student/ProgressTab';
 import { ProfileTab } from '@/components/student/ProfileTab';
+import { FeedTab } from '@/components/student/feed/FeedTab';
 import { GlassCard } from '@/components/ui/GlassCard';
 
 export default function StudentDashboard() {
@@ -35,6 +36,7 @@ export default function StudentDashboard() {
 
     switch (activeTab) {
       case 'home':
+        return <FeedTab />;
       case 'workout':
         return <HomeWorkoutTab activeDay={activeDay} setActiveDay={setActiveDay} />;
       case 'progress':

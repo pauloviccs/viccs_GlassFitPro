@@ -7,6 +7,10 @@ import { supabase } from '@/lib/supabase';
 import { EditProfileModal } from './EditProfileModal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { FeedPost } from '@/types';
+import { feedService } from '@/services/feedService';
+import { FeedPostCard } from './feed/FeedPostCard';
+import { Loader2 } from 'lucide-react';
 
 interface ProfileStats {
     totalCompleted: number;
@@ -17,6 +21,9 @@ export function ProfileTab() {
     const { user, logout } = useAuth();
     const [stats, setStats] = useState<ProfileStats>({ totalCompleted: 0, totalWorkouts: 0 });
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    const [posts, setPosts] = useState<FeedPost[]>([]);
+    const [loadingPosts, setLoadingPosts] = useState(true);
 
     const fetchStats = async () => {
         if (!user) return;
@@ -33,8 +40,23 @@ export function ProfileTab() {
         }
     };
 
+    const fetchUserPosts = async () => {
+        if (!user) return;
+        setLoadingPosts(true);
+        try {
+            // Buscando os últimos 20 posts do aluno
+            const fetchedPosts = await feedService.getUserPosts(user.id, 0, 20, user.id);
+            setPosts(fetchedPosts);
+        } catch (error) {
+            console.error('Failed to fetch user posts', error);
+        } finally {
+            setLoadingPosts(false);
+        }
+    };
+
     useEffect(() => {
         fetchStats();
+        fetchUserPosts();
     }, [user]);
 
     // Format Join Date
@@ -110,6 +132,25 @@ export function ProfileTab() {
                         <span className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1 text-center">Treinos<br />Inscritos</span>
                     </div>
                 </GlassCard>
+            </div>
+
+            {/* User Timeline Feed */}
+            <div className="px-4 mt-8 space-y-4">
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest pl-1">Meus Check-ins</h3>
+
+                {loadingPosts ? (
+                    <div className="flex justify-center py-6">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                ) : posts.length === 0 ? (
+                    <div className="text-center py-8 glass-subtle rounded-3xl border border-white/5">
+                        <p className="text-muted-foreground font-medium text-sm">Nenhum check-in registrado.</p>
+                    </div>
+                ) : (
+                    posts.map(post => (
+                        <FeedPostCard key={post.id} post={post} />
+                    ))
+                )}
             </div>
 
             {/* Settings Options / Footer actions */}

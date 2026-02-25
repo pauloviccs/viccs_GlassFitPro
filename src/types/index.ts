@@ -53,3 +53,29 @@ export interface StudentProgress {
   completedExercises: number;
   percentage: number;
 }
+
+export interface FeedLike {
+  post_id: string;
+  student_id: string;
+  created_at: string;
+}
+
+export interface FeedPost {
+  id: string;
+  student_id: string;
+  content: string;
+  image_url?: string;
+  post_date: string;
+  created_at: string;
+
+  // Joins that will come from the query
+  profiles?: {
+    name: string;
+    display_name?: string;
+    avatar_url?: string;
+  };
+
+  // Custom counters and booleans that we will attach when mapping
+  likesCount?: number;
+  isLikedByMe?: boolean;
+}

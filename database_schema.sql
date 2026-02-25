@@ -198,3 +198,100 @@ CREATE POLICY "Banners Upload Access" ON storage.objects
 -- Liberar atualização para usuários logados
 CREATE POLICY "Banners Update Access" ON storage.objects
   FOR UPDATE USING (bucket_id = 'banners' AND auth.role() = 'authenticated');
+
+
+-- -----------------------------------------------------------------------------------------
+-- 9. FEED (TWITTER-STYLE) TABLES & POLICIES
+-- -----------------------------------------------------------------------------------------
+
+-- Tabela de Posts do Feed
+CREATE TABLE public.feed_posts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  content VARCHAR(250) NOT NULL,
+  image_url TEXT,
+  post_date DATE DEFAULT CURRENT_DATE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  -- CONSTRAINT MATADORA: Garante apenas 1 post por dia por aluno no fuso horário do BD
+  CONSTRAINT one_post_per_day UNIQUE (student_id, post_date)
+);
+
+ALTER TABLE public.feed_posts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Leitura pública do feed para autenticados" 
+ON public.feed_posts FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Estudantes inserem seus próprios posts" 
+ON public.feed_posts FOR INSERT TO authenticated 
+WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "Estudantes deletam seus próprios posts" 
+ON public.feed_posts FOR DELETE TO authenticated 
+USING (student_id = auth.uid());
+
+CREATE POLICY "Admins podem deletar qualquer post" 
+ON public.feed_posts FOR DELETE TO authenticated 
+USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+
+-- Tabela de Likes do Feed
+CREATE TABLE public.feed_likes (
+  post_id UUID REFERENCES public.feed_posts(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  PRIMARY KEY (post_id, student_id)
+);
+
+ALTER TABLE public.feed_likes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Leitura de likes pública para autenticados" 
+ON public.feed_likes FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Estudantes curtem com seu próprio usuário" 
+ON public.feed_likes FOR INSERT TO authenticated 
+WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "Estudantes descurtem seus próprios likes" 
+ON public.feed_likes FOR DELETE TO authenticated 
+USING (student_id = auth.uid());
+
+-- Storage RLS para feed_images
+-- Liberar leitura pública do bucket 'feed_images'
+-- PS: Certifique-se de que o bucket 'feed_images' foi criado no painel do Supabase.
+CREATE POLICY "Feed Images Public Access" ON storage.objects
+  FOR SELECT USING (bucket_id = 'feed_images');
+
+CREATE POLICY "Feed Images Upload Access" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'feed_images' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Feed Images Update Access" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'feed_images' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Feed Images Delete Access" ON storage.objects
+  FOR DELETE USING (bucket_id = 'feed_images' AND auth.role() = 'authenticated');
+
+-- -----------------------------------------------------------------------------------------
+-- 10. FEED RPCs (Para contagens e queries otimizadas)
+-- -----------------------------------------------------------------------------------------
+
+-- Função para curtir / descurtir (Toggle Like)
+CREATE OR REPLACE FUNCTION toggle_feed_like(p_post_id UUID, p_user_id UUID)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  like_exists BOOLEAN;
+BEGIN
+  SELECT EXISTS(
+    SELECT 1 FROM public.feed_likes WHERE post_id = p_post_id AND student_id = p_user_id
+  ) INTO like_exists;
+
+  IF like_exists THEN
+    DELETE FROM public.feed_likes WHERE post_id = p_post_id AND student_id = p_user_id;
+    RETURN false; -- Retorna false indicando que removeu o like
+  ELSE
+    INSERT INTO public.feed_likes (post_id, student_id) VALUES (p_post_id, p_user_id);
+    RETURN true; -- Retorna true indicando que adicionou o like
+  END IF;
+END;
+$$;

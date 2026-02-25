@@ -6,25 +6,26 @@
 
 ## Description
 
-GlassFit Pro is a modern, responsive web application designed for managing workouts, personal training, and fitness routines. It provides distinct experiences: a student portal for viewing and executing assigned workouts, and an admin/professor portal for comprehensive management of users, exercises, and workout plans. The application uses sleek glassmorphic aesthetics, leveraging Supabase as a backend-as-a-service for secure authentication, real-time database updates, and Row Level Security (RLS).
+GlassFit Pro is a modern, responsive web application designed for managing workouts, personal training, and fitness routines. It provides distinct experiences: a student portal for viewing and executing assigned workouts, and an admin/professor portal for comprehensive management of users, exercises, and workout plans. The application uses sleek glassmorphic aesthetics, leveraging Supabase as a backend-as-a-service for secure authentication, real-time database updates, Storage, RPC functions, and Row Level Security (RLS).
 
 Recent updates include:
 
-- Swipe-to-complete logic for exercises with Framer Motion in `ExerciseCard.tsx`.
-- Expandable instructions/descriptions area inside the `ExerciseCard`.
-- YouTube thumbnails integration and dynamic video embedding for exercises.
-- Real-time student progress syncing and aggregated statistics inside the Admin Dashboard.
-- Polished overall UX and responsive design with glassmorphism across device sizes.
+- **Mobile Profile System:** Gamified, Twitter-like profile screen for students with interactive banner and avatar uploading organically cropped via `react-easy-crop` before uploading, mini-bio text with Emoji Picker, and optimized canvas client-side image compression.
+- **Admin Dashboard Synchronization:** The "Meus Alunos" tab instantly reflects custom avatars uploaded by each student.
+- **Progress Tracking:** Interactive Real-Time Progress Tab allows students to view latest workouts, log daily weight, and track body evolution with `recharts`.
+- **Supabase Storage:** Configured "avatars" and "banners" buckets strongly governed by RLS policies for precise read/write security.
+- **Interactive Exercises:** Swipe-to-complete logic with Framer Motion, dynamic YouTube video embedding, and expandable descriptions in `ExerciseCard`.
 
 ## Tech Stack
 
 - **Languages:** TypeScript, HTML, CSS
 - **Frontend Framework:** React 18 (Vite bundler)
-- **Styling:** Tailwind CSS, shadcn/ui, Radix UI Primitives, Framer Motion
+- **Styling & Animation:** Tailwind CSS, shadcn/ui, Radix UI Primitives, Framer Motion
 - **State Management & Data Fetching:** Zustand, TanStack React Query
 - **Routing:** React Router v6
 - **Forms & Validation:** React Hook Form, zod
-- **Backend/Services:** Supabase (PostgreSQL Database, Auth, Row Level Security)
+- **Media & Charts:** `react-easy-crop`, `emoji-picker-react`, `recharts`
+- **Backend/Services:** Supabase (PostgreSQL Database, Storage, Auth, RPC Functions, Row Level Security)
 - **Testing:** Vitest, Testing Library
 - **Tooling:** ESLint, PostCSS
 
@@ -33,13 +34,13 @@ Recent updates include:
 - **Authentication System:** Secure login mapping users to "admin" or "student" roles via Supabase.
 - **Admin Portal (`/admin`):**
   - **Overview Dashboard:** Displays dynamic, real-time statistics and recent student activities.
-  - **Student Management:** Full CRUD operations for student profiles and "Copy Workout" functionality to replicate routines between students easily.
+  - **Student Management:** Full CRUD operations for student profiles, synchronized avatars displayed dynamically, and "Copy Workout" functionality to replicate routines between students easily.
   - **Exercise Management:** Library of predefined exercises with details.
   - **Workout Management:** Assigning and building customized workout plans for students.
 - **Student Portal (`/student`):**
   - **Student Dashboard:** Viewing active customized workouts and daily assignments.
   - **Interactive Real-Time Progress Tab:** Allows students to view their latest workouts and add daily weight tracking, instantly rendering a smooth `recharts` graph to track body evolution.
-  - **Gamified Profile Tab:** Twitter-like profile screen featuring interactive Banner and Avatar uploading natively cropped `react-easy-crop`, Mini-bio text with Emoji Picker styling, and automatically synced "Completed Exercises" statistics from Supabase RPCs.
+  - **Gamified Profile Tab:** Twitter-like profile screen featuring interactive Banner and Avatar uploading natively cropped by `react-easy-crop` (to maximize storage), Mini-bio text with an Emoji Picker, and optimized "Completed Exercises" RPC statistics.
   - **Interactive Exercises:** Swipe-to-complete actions, video viewing, and inline instructions context.
 
 ## Folder Structure
@@ -50,7 +51,10 @@ viccs_GlassFitPro/
 ├── public/                # Static public assets (e.g., icons, images)
 ├── src/                   # Main application source code
 │   ├── components/        # Reusable UI components (shadcn/ui, widgets, layouts)
-│   ├── contexts/          # React contexts (e.g., AuthContext for session management)
+│   │   ├── admin/         # Sub-components for admin specific flows
+│   │   ├── student/       # Sub-components for student workflows (ProgressTab, ProfileTab, ImageCropper, etc)
+│   │   └── ui/            # Base UI components
+│   ├── contexts/          # React contexts (e.g., AuthContext for session and profile sync)
 │   ├── data/              # Static or mock data definitions
 │   ├── hooks/             # Custom React hooks
 │   ├── lib/               # Utility functions, helpers, Supabase client initialization
