@@ -43,7 +43,7 @@ export function ImageCropper({ image, aspectRatio, onCropComplete, cropShape = '
 }
 
 // Utilitário auxiliar para extrair o Crop de forma funcional no DOM:
-export const getCroppedImg = async (imageSrc: string, pixelCrop: Area): Promise<Blob | null> => {
+export const getCroppedImg = async (imageSrc: string, pixelCrop: Area, maxWidth?: number, maxHeight?: number): Promise<Blob | null> => {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
         img.addEventListener('load', () => resolve(img));
@@ -59,8 +59,24 @@ export const getCroppedImg = async (imageSrc: string, pixelCrop: Area): Promise<
         return null;
     }
 
-    canvas.width = pixelCrop.width;
-    canvas.height = pixelCrop.height;
+    let targetWidth = pixelCrop.width;
+    let targetHeight = pixelCrop.height;
+
+    // Redimensionamento proporcional se exceder os limites para otimizar tamanho
+    if (maxWidth && targetWidth > maxWidth) {
+        const ratio = maxWidth / targetWidth;
+        targetWidth = maxWidth;
+        targetHeight = targetHeight * ratio;
+    }
+
+    if (maxHeight && targetHeight > maxHeight) {
+        const ratio = maxHeight / targetHeight;
+        targetHeight = maxHeight;
+        targetWidth = targetWidth * ratio;
+    }
+
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
 
     ctx.drawImage(
         image,
@@ -70,13 +86,14 @@ export const getCroppedImg = async (imageSrc: string, pixelCrop: Area): Promise<
         pixelCrop.height,
         0,
         0,
-        pixelCrop.width,
-        pixelCrop.height
+        targetWidth,
+        targetHeight
     );
 
     return new Promise((resolve) => {
+        // Usa JPEG com 80% de qualidade para reduzir de forma massiva o tamanho sem grande perda visual
         canvas.toBlob((blob) => {
             resolve(blob);
-        }, 'image/jpeg', 0.9);
+        }, 'image/jpeg', 0.8);
     });
 };

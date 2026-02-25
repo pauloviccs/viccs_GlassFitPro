@@ -57,8 +57,19 @@ export function EditProfileModal({ isOpen, setIsOpen, onUpdate }: EditProfileMod
     const handleCropComplete = async () => {
         if (!currentUploadedImage || !croppedAreaPixels || !croppingType) return;
         try {
-            const croppedBlob = await getCroppedImg(currentUploadedImage, croppedAreaPixels);
-            if (!croppedBlob) throw new Error("Falha no recorte");
+            let maxWidth = undefined;
+            let maxHeight = undefined;
+
+            if (croppingType === 'avatar') {
+                maxWidth = 300;
+                maxHeight = 300;
+            } else if (croppingType === 'banner') {
+                maxWidth = 1500;
+                maxHeight = 500;
+            }
+
+            const croppedBlob = await getCroppedImg(currentUploadedImage, croppedAreaPixels, maxWidth, maxHeight);
+            if (!croppedBlob) throw new Error("Falha no recorte da imagem");
 
             // Transforma o blob num base64 preview para mostrar na UI imediatamente
             const croppedUrl = URL.createObjectURL(croppedBlob);
@@ -86,26 +97,24 @@ export function EditProfileModal({ isOpen, setIsOpen, onUpdate }: EditProfileMod
         setCroppedAreaPixels(null);
     };
 
-    const uploadToStorage = async (fileUrl: string, bucket: string): Promise<string | null> => {
-        try {
-            // Converte o blob url (blob:http://...) de volta para um Blob verdadeiro
-            const response = await fetch(fileUrl);
-            const blob = await response.blob();
+    const uploadToStorage = async (fileUrl: string, bucket: string): Promise<string> => {
+        // Converte o blob url (blob:http://...) de volta para um Blob verdadeiro
+        const response = await fetch(fileUrl);
+        const blob = await response.blob();
 
-            const fileName = `${user?.id}-${Date.now()}.jpg`;
-            const { data, error } = await supabase.storage.from(bucket).upload(fileName, blob, {
-                contentType: 'image/jpeg',
-                upsert: true
-            });
+        const fileName = `${user?.id}-${Date.now()}.jpg`;
+        const { data, error } = await supabase.storage.from(bucket).upload(fileName, blob, {
+            contentType: 'image/jpeg',
+            upsert: true
+        });
 
-            if (error) throw error;
-
-            const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
-            return publicUrl;
-        } catch (error) {
+        if (error) {
             console.error(`Erro upando pro bucket ${bucket}:`, error);
-            return null;
+            throw new Error(`Permissão negada ou erro no Bucket '${bucket}': ${error.message}`);
         }
+
+        const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
+        return publicUrl;
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -118,11 +127,11 @@ export function EditProfileModal({ isOpen, setIsOpen, onUpdate }: EditProfileMod
             let finalBannerUrl = user.bannerUrl;
 
             if (avatarFile && avatarFile.startsWith('blob:')) {
-                finalAvatarUrl = await uploadToStorage(avatarFile, 'avatars') || finalAvatarUrl;
+                finalAvatarUrl = await uploadToStorage(avatarFile, 'avatars');
             }
 
             if (bannerFile && bannerFile.startsWith('blob:')) {
-                finalBannerUrl = await uploadToStorage(bannerFile, 'banners') || finalBannerUrl;
+                finalBannerUrl = await uploadToStorage(bannerFile, 'banners');
             }
 
             const updates = {
