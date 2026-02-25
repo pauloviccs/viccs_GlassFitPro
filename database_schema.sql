@@ -168,3 +168,33 @@ BEGIN
   RETURN result;
 END;
 $$;
+
+
+-- -----------------------------------------------------------------------------------------
+-- 8. STORAGE RLS POLICIES (AVATARS & BANNERS)
+-- Rode esses scripts para liberar o upload/leitura de imagens nos buckets pelo seu app
+-- -----------------------------------------------------------------------------------------
+
+-- Liberar leitura pública do bucket 'avatars'
+CREATE POLICY "Avatars Public Access" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+-- Liberar upload de imagens para usuários logados no bucket 'avatars'
+CREATE POLICY "Avatars Upload Access" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+
+-- Liberar atualização para usuários logados
+CREATE POLICY "Avatars Update Access" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+
+-- Liberar leitura pública do bucket 'banners'
+CREATE POLICY "Banners Public Access" ON storage.objects
+  FOR SELECT USING (bucket_id = 'banners');
+
+-- Liberar upload de imagens para usuários logados no bucket 'banners'
+CREATE POLICY "Banners Upload Access" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'banners' AND auth.role() = 'authenticated');
+
+-- Liberar atualização para usuários logados
+CREATE POLICY "Banners Update Access" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'banners' AND auth.role() = 'authenticated');

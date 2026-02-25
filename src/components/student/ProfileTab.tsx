@@ -41,7 +41,7 @@ export function ProfileTab() {
     const joinDate = user?.createdAt ? format(new Date(user.createdAt), "MMMM 'de' yyyy", { locale: ptBR }) : '';
 
     return (
-        <div className="space-y-0 pb-10 w-full min-h-screen bg-background relative overflow-hidden">
+        <div className="-mx-4 -mt-4 sm:-mx-6 sm:-mt-6 pb-24 min-h-[calc(100vh-3rem)] bg-background relative overflow-x-hidden">
 
             {/* Banner Section */}
             <div className="relative w-full h-40 bg-gradient-to-tr from-primary/30 via-secondary/50 to-primary/10 overflow-hidden">
@@ -60,12 +60,14 @@ export function ProfileTab() {
                     )}
                 </div>
 
-                <button
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="px-5 py-2 glass rounded-full font-bold text-sm text-foreground hover:bg-white/10 transition z-10"
-                >
-                    Editar Perfil
-                </button>
+                <div className="pb-2">
+                    <button
+                        onClick={() => setIsEditModalOpen(true)}
+                        className="px-5 py-2 glass rounded-full font-bold text-sm text-foreground hover:bg-white/10 transition z-10"
+                    >
+                        Editar Perfil
+                    </button>
+                </div>
             </div>
 
             {/* Info Section */}
@@ -111,7 +113,7 @@ export function ProfileTab() {
             </div>
 
             {/* Settings Options / Footer actions */}
-            <div className="px-4 mt-8">
+            <div className="px-4 mt-12 pb-10">
                 <button
                     onClick={logout}
                     className="w-full glass-subtle border border-destructive/20 hover:border-destructive text-destructive rounded-2xl p-4 flex items-center justify-center gap-3 transition-colors"
