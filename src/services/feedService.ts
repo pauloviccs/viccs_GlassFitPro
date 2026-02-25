@@ -16,7 +16,7 @@ export const feedService = {
             .from('feed_posts')
             .select(`
                 *,
-                profiles ( name, display_name, avatar_url ),
+                profiles:profiles!feed_posts_student_id_fkey ( name, display_name, avatar_url ),
                 feed_likes ( student_id )
             `)
             .order('created_at', { ascending: false })
@@ -57,7 +57,7 @@ export const feedService = {
             .from('feed_posts')
             .select(`
                 *,
-                profiles ( name, display_name, avatar_url ),
+                profiles:profiles!feed_posts_student_id_fkey ( name, display_name, avatar_url ),
                 feed_likes ( student_id )
             `)
             .eq('student_id', studentId)

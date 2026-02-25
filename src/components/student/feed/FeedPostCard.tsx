@@ -33,6 +33,22 @@ export function FeedPostCard({ post }: { post: FeedPost }) {
 
     const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR });
 
+    const renderContentWithMentions = (text: string) => {
+        // Separa o texto pelo símbolo @ seguido de qualquer caractere diferente de espaço (\S+)
+        const parts = text.split(/(@\S+)/g);
+
+        return parts.map((part, i) => {
+            if (part.startsWith('@')) {
+                return (
+                    <span key={i} className="text-primary font-bold cursor-pointer hover:opacity-80 transition-opacity">
+                        {part}
+                    </span>
+                );
+            }
+            return <span key={i}>{part}</span>;
+        });
+    };
+
     return (
         <GlassCard variant="subtle" className="p-4 border-white/5 bg-black/20 hover:bg-black/30 transition-colors">
             <div className="flex gap-3">
@@ -58,7 +74,7 @@ export function FeedPostCard({ post }: { post: FeedPost }) {
                     </div>
 
                     <p className="mt-1 text-sm md:text-base text-foreground/90 whitespace-pre-wrap break-words">
-                        {post.content}
+                        {renderContentWithMentions(post.content)}
                     </p>
 
                     {post.image_url && (
