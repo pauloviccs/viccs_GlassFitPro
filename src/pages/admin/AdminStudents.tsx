@@ -50,6 +50,7 @@ export default function AdminStudents() {
           name: d.name,
           email: d.email || 'Email indisponível (Auth)', // In a real app we might need an edge function to fetch auth.users emails securely
           role: d.role as 'student',
+          avatarUrl: d.avatar_url,
           createdAt: d.created_at
         })));
       }
@@ -291,8 +292,12 @@ export default function AdminStudents() {
               transition={{ delay: i * 0.05 }}
             >
               <GlassCard variant="strong" className="flex items-center gap-4 p-4 hover:border-white/10 transition-colors">
-                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 shadow-inner">
-                  <span className="text-base font-bold text-primary">{student.name.charAt(0).toUpperCase()}</span>
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden">
+                  {student.avatarUrl ? (
+                    <img src={student.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-base font-bold text-primary">{student.name.charAt(0).toUpperCase()}</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-foreground truncate">{student.name}</p>
