@@ -6,6 +6,10 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  displayName?: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  bio?: string;
   createdAt: string;
 }
 

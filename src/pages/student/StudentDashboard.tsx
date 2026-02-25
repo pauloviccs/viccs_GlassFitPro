@@ -7,6 +7,7 @@ import StudentLayout from '@/components/StudentLayout';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { HomeWorkoutTab } from '@/components/student/HomeWorkoutTab';
 import { ProgressTab } from '@/components/student/ProgressTab';
+import { ProfileTab } from '@/components/student/ProfileTab';
 import { GlassCard } from '@/components/ui/GlassCard';
 
 export default function StudentDashboard() {
@@ -39,30 +40,7 @@ export default function StudentDashboard() {
       case 'progress':
         return <ProgressTab />;
       case 'profile':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-foreground">Meu Perfil</h2>
-            <p className="text-sm text-muted-foreground">Gerencie sua conta</p>
-
-            <GlassCard variant="strong" className="p-6 rounded-3xl flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                <UserCircle className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-foreground">{user?.email}</p>
-                <p className="text-xs text-primary font-medium mt-1 uppercase tracking-wider">Aluno Ativo</p>
-              </div>
-            </GlassCard>
-
-            <button
-              onClick={signOut}
-              className="w-full glass-subtle hover:bg-destructive/10 border border-white/5 hover:border-destructive/30 text-destructive rounded-2xl p-4 flex items-center justify-center gap-3 transition-colors mt-8"
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="font-semibold text-sm">Encerrar Sessão</span>
-            </button>
-          </div>
-        );
+        return <ProfileTab />;
       default:
         return null;
     }

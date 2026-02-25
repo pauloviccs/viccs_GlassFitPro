@@ -131,3 +131,40 @@ WITH CHECK (student_id = auth.uid());
 CREATE POLICY "Estudantes podem deletar seus próprios pesos" 
 ON public.weight_logs FOR DELETE TO authenticated 
 USING (student_id = auth.uid());
+
+-- 6. Atualizações no Profile para a Feature de "Profile Tab"
+ALTER TABLE public.profiles ADD COLUMN display_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN avatar_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN banner_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN bio VARCHAR(150);
+
+-- 7. RPC de Estatísticas (Exercícios Concluídos) para Perfil
+CREATE OR REPLACE FUNCTION get_profile_stats(user_id UUID)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  total_completed_exercises INT;
+  total_workouts INT;
+  result json;
+BEGIN
+  -- Total de exercícios concluídos
+  SELECT COUNT(*) INTO total_completed_exercises
+  FROM public.workout_exercises we
+  JOIN public.workout_days wd ON wd.id = we.workout_day_id
+  WHERE wd.student_id = user_id AND we.completed = true;
+
+  -- Total de treinos planejados na conta
+  SELECT COUNT(*) INTO total_workouts
+  FROM public.workout_days
+  WHERE student_id = user_id;
+
+  result := json_build_object(
+    'total_completed_exercises', total_completed_exercises,
+    'total_workouts', total_workouts
+  );
+
+  RETURN result;
+END;
+$$;

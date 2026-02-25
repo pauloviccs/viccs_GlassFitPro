@@ -38,6 +38,8 @@ Recent updates include:
   - **Workout Management:** Assigning and building customized workout plans for students.
 - **Student Portal (`/student`):**
   - **Student Dashboard:** Viewing active customized workouts and daily assignments.
+  - **Interactive Real-Time Progress Tab:** Allows students to view their latest workouts and add daily weight tracking, instantly rendering a smooth `recharts` graph to track body evolution.
+  - **Gamified Profile Tab:** Twitter-like profile screen featuring interactive Banner and Avatar uploading natively cropped `react-easy-crop`, Mini-bio text with Emoji Picker styling, and automatically synced "Completed Exercises" statistics from Supabase RPCs.
   - **Interactive Exercises:** Swipe-to-complete actions, video viewing, and inline instructions context.
 
 ## Folder Structure
