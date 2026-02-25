@@ -6,20 +6,22 @@
 
 ## Description
 
-GlassFit Pro is a modern, responsive web application designed for managing workouts, personal training, and fitness routines. It provides distinct experiences: a student portal for viewing and executing assigned workouts, and an admin/professor portal for comprehensive management of users, exercises, and workout plans. The application uses a sleek glassmorphic aesthetics, leveraging Supabase as a backend-as-a-service for secure authentication, real-time database updates, and Row Level Security (RLS).
+GlassFit Pro is a modern, responsive web application designed for managing workouts, personal training, and fitness routines. It provides distinct experiences: a student portal for viewing and executing assigned workouts, and an admin/professor portal for comprehensive management of users, exercises, and workout plans. The application uses sleek glassmorphic aesthetics, leveraging Supabase as a backend-as-a-service for secure authentication, real-time database updates, and Row Level Security (RLS).
 
 Recent updates include:
 
-- Fixing the authentication redirect loop to ensure proper routing based on user role.
-- Syncing real-time student progress and aggregated statistics (Total Students, Registered Exercises, Active Workouts) directly to the Admin Dashboard.
-- Polished overall UX and responsive design across device sizes.
+- Swipe-to-complete logic for exercises with Framer Motion in `ExerciseCard.tsx`.
+- Expandable instructions/descriptions area inside the `ExerciseCard`.
+- YouTube thumbnails integration and dynamic video embedding for exercises.
+- Real-time student progress syncing and aggregated statistics inside the Admin Dashboard.
+- Polished overall UX and responsive design with glassmorphism across device sizes.
 
 ## Tech Stack
 
 - **Languages:** TypeScript, HTML, CSS
 - **Frontend Framework:** React 18 (Vite bundler)
-- **Styling:** Tailwind CSS, shadcn/ui, Radix UI Primitives, Framer Motion (animations)
-- **State Management & Data Fetching:** Zustand, React Context, TanStack React Query
+- **Styling:** Tailwind CSS, shadcn/ui, Radix UI Primitives, Framer Motion
+- **State Management & Data Fetching:** Zustand, TanStack React Query
 - **Routing:** React Router v6
 - **Forms & Validation:** React Hook Form, zod
 - **Backend/Services:** Supabase (PostgreSQL Database, Auth, Row Level Security)
@@ -31,11 +33,12 @@ Recent updates include:
 - **Authentication System:** Secure login mapping users to "admin" or "student" roles via Supabase.
 - **Admin Portal (`/admin`):**
   - **Overview Dashboard:** Displays dynamic, real-time statistics and recent student activities.
-  - **Student Management:** Full CRUD operations for student profiles.
+  - **Student Management:** Full CRUD operations for student profiles and "Copy Workout" functionality to replicate routines between students easily.
   - **Exercise Management:** Library of predefined exercises with details.
   - **Workout Management:** Assigning and building customized workout plans for students.
 - **Student Portal (`/student`):**
   - **Student Dashboard:** Viewing active customized workouts and daily assignments.
+  - **Interactive Exercises:** Swipe-to-complete actions, video viewing, and inline instructions context.
 
 ## Folder Structure
 
@@ -71,3 +74,9 @@ viccs_GlassFitPro/
 ├── eslint.config.js       # ESLint configurations
 └── vite.config.ts         # Vite bundler configurations
 ```
+
+## Known TODOs / Work in Progress
+
+- Refining error handling and rollbacks for optimistic updates via Supabase mutations.
+- Centralizing email handling properties properly if profile tables separate them from `useWorkoutStore` user objects.
+- Adding additional real-time subscription channels for notifications functionality across admin/student spaces if necessary.

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Edit2, Trash2, X, BarChart3, Loader2, CheckCircle2, Circle } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, X, BarChart3, Loader2, CheckCircle2, Circle, Copy } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { AnimatedButton } from '@/components/AnimatedButton';
 import { WeeklyProgress } from '@/components/WeeklyProgress';
@@ -19,6 +19,14 @@ export default function AdminStudents() {
   const [form, setForm] = useState({ name: '', email: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Copy Workout States
+  const [copyModalOpen, setCopyModalOpen] = useState(false);
+  const [copySourceStudent, setCopySourceStudent] = useState<User | null>(null);
+  const [copySourceDay, setCopySourceDay] = useState('Segunda-feira');
+  const [copyTargetStudentId, setCopyTargetStudentId] = useState('');
+  const [copyTargetDay, setCopyTargetDay] = useState('Segunda-feira');
+  const [isCopying, setIsCopying] = useState(false);
 
   const { toast } = useToast();
 
@@ -148,6 +156,102 @@ export default function AdminStudents() {
     }
   };
 
+  const weekDays = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+
+  const openCopy = (s: User) => {
+    setCopySourceStudent(s);
+    setCopySourceDay('Segunda-feira');
+    setCopyTargetStudentId('');
+    setCopyTargetDay('Segunda-feira');
+    setCopyModalOpen(true);
+  };
+
+  const handleCopyWorkout = async () => {
+    if (!copySourceStudent || !copyTargetStudentId) {
+      toast({ title: "Atenção", description: "Selecione o aluno de destino.", variant: "destructive" });
+      return;
+    }
+
+    setIsCopying(true);
+    try {
+      // 1. Fetch source workout day
+      const { data: sourceDay } = await supabase
+        .from('workout_days')
+        .select('id')
+        .eq('student_id', copySourceStudent.id)
+        .eq('day_of_week', copySourceDay)
+        .maybeSingle();
+
+      if (!sourceDay) {
+        toast({ title: "Aviso", description: `O aluno origem não possui treino na ${copySourceDay}.`, variant: "destructive" });
+        setIsCopying(false);
+        return;
+      }
+
+      // 2. Fetch source exercises
+      const { data: sourceExercises } = await supabase
+        .from('workout_exercises')
+        .select('*')
+        .eq('workout_day_id', sourceDay.id);
+
+      if (!sourceExercises || sourceExercises.length === 0) {
+        toast({ title: "Aviso", description: "O treino de origem está vazio.", variant: "destructive" });
+        setIsCopying(false);
+        return;
+      }
+
+      // 3. Find or Create target workout day
+      let targetDayId;
+      const { data: targetDayData } = await supabase
+        .from('workout_days')
+        .select('id')
+        .eq('student_id', copyTargetStudentId)
+        .eq('day_of_week', copyTargetDay)
+        .maybeSingle();
+
+      if (targetDayData) {
+        targetDayId = targetDayData.id;
+      } else {
+        const { data: newTargetDay, error: dayError } = await supabase
+          .from('workout_days')
+          .insert([{ student_id: copyTargetStudentId, day_of_week: copyTargetDay }])
+          .select()
+          .single();
+
+        if (dayError) throw dayError;
+        targetDayId = newTargetDay.id;
+      }
+
+      // 4. Clean up existing exercises in target day
+      const { error: delError } = await supabase
+        .from('workout_exercises')
+        .delete()
+        .eq('workout_day_id', targetDayId);
+
+      if (delError) throw delError;
+
+      // 5. Insert copied exercises
+      const inserts = sourceExercises.map(ex => ({
+        workout_day_id: targetDayId,
+        exercise_id: ex.exercise_id,
+        sets: ex.sets,
+        reps: ex.reps,
+        order_index: ex.order_index
+      }));
+
+      const { error: insError } = await supabase.from('workout_exercises').insert(inserts);
+      if (insError) throw insError;
+
+      toast({ title: "Treino Copiado!", description: `Treino copiado com sucesso para o novo aluno na ${copyTargetDay}.` });
+      setCopyModalOpen(false);
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Erro na Cópia", description: "Não foi possível copiar o treino.", variant: "destructive" });
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Search + Add */}
@@ -195,6 +299,9 @@ export default function AdminStudents() {
                   <p className="text-xs font-medium text-muted-foreground truncate uppercase tracking-widest mt-0.5">Aluno Ativo</p>
                 </div>
                 <div className="flex gap-2">
+                  <button onClick={() => openCopy(student)} className="glass rounded-xl p-2.5 hover:bg-secondary transition-colors" title="Copiar Treino">
+                    <Copy className="w-4 h-4 text-foreground" />
+                  </button>
                   <button onClick={() => openProgress(student)} className="glass rounded-xl p-2.5 hover:bg-secondary transition-colors" title="Progresso">
                     <BarChart3 className="w-4 h-4 text-foreground" />
                   </button>
@@ -316,6 +423,84 @@ export default function AdminStudents() {
                       )}
                     </>
                   )}
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Copy Modal */}
+      <AnimatePresence>
+        {copyModalOpen && copySourceStudent && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md" onClick={() => setCopyModalOpen(false)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-full max-w-md pointer-events-auto"
+              >
+                <div className="glass-strong border border-white/10 shadow-2xl rounded-3xl p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-foreground">Copiar Treino</h2>
+                    <button onClick={() => setCopyModalOpen(false)} className="hover:bg-white/10 p-2 rounded-full transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
+                  </div>
+                  <div className="space-y-4">
+                    {/* Source Info */}
+                    <div className="p-4 rounded-xl glass bg-black/20 border border-white/5 flex flex-col gap-1">
+                      <p className="text-xs uppercase font-bold tracking-widest text-muted-foreground">De (Origem)</p>
+                      <p className="text-sm font-semibold text-foreground">{copySourceStudent.name}</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Dia do Treino (Origem)</label>
+                      <select
+                        value={copySourceDay}
+                        onChange={(e) => setCopySourceDay(e.target.value)}
+                        className="w-full glass-subtle rounded-xl px-4 py-3.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background/40"
+                      >
+                        {weekDays.map(d => <option key={d} value={d} className="bg-background text-foreground">{d}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Para o Aluno (Destino)</label>
+                      <select
+                        value={copyTargetStudentId}
+                        onChange={(e) => setCopyTargetStudentId(e.target.value)}
+                        className="w-full glass-subtle rounded-xl px-4 py-3.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background/40"
+                      >
+                        <option value="" disabled className="bg-background text-foreground">Selecione o aluno</option>
+                        {students.filter(s => s.id !== copySourceStudent.id).map(s => (
+                          <option key={s.id} value={s.id} className="bg-background text-foreground">{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs uppercase font-bold tracking-widest text-muted-foreground pl-1">Dia do Treino (Destino)</label>
+                      <select
+                        value={copyTargetDay}
+                        onChange={(e) => setCopyTargetDay(e.target.value)}
+                        className="w-full glass-subtle rounded-xl px-4 py-3.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background/40"
+                      >
+                        {weekDays.map(d => <option key={d} value={d} className="bg-background text-foreground">{d}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 mt-2">
+                      <p className="text-xs text-destructive font-medium">Cuidado: Os exercícios atuais do aluno de destino no dia escolhido serão totalmente substituídos por esta cópia.</p>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <button className="flex-1 rounded-xl glass hover:bg-white/5 py-2.5 text-sm font-medium text-foreground transition-colors" onClick={() => setCopyModalOpen(false)}>Cancelar</button>
+                      <AnimatedButton onClick={handleCopyWorkout} className="flex-1 rounded-xl h-10" disabled={isCopying || !copyTargetStudentId}>
+                        {isCopying ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Confirmar Cópia'}
+                      </AnimatedButton>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             </div>
