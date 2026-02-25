@@ -28,13 +28,25 @@ export type Student = {
   workouts: WorkoutDay[];
 };
 
+export type WeightLog = {
+  id: string;
+  weight: number;
+  recorded_at: string;
+};
+
 interface WorkoutStore {
   currentStudent: Student | null;
+  weightLogs: WeightLog[];
   isLoading: boolean;
+  isLoadingWeights: boolean;
 
   // Ações para o Estudante
   fetchStudentData: (studentId: string) => Promise<void>;
   markExerciseComplete: (dayId: string, exerciseId: string) => Promise<void>;
+
+  // Ações para Pesos
+  fetchWeightLogs: (studentId: string) => Promise<void>;
+  addWeightLog: (studentId: string, weight: number) => Promise<void>;
 
   // Variáveis antigas deixadas como null/vazio pra não quebrar imports que não foram apagados
   students: any[];
@@ -46,7 +58,9 @@ interface WorkoutStore {
 
 export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
   currentStudent: null,
+  weightLogs: [],
   isLoading: true,
+  isLoadingWeights: true,
   students: [],
   exerciseLibrary: [],
   addStudent: () => { },
@@ -167,6 +181,56 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
         // Mas como MVP, confiamos na rede do usuário.
       }
     });
+  },
+
+  fetchWeightLogs: async (studentId: string) => {
+    set({ isLoadingWeights: true });
+    try {
+      const { data, error } = await supabase
+        .from('weight_logs')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('recorded_at', { ascending: true }); // do mais antigo pro mais novo pro gráfico ficar visualmente certo da esquerda pra direita
+
+      if (error) throw error;
+      set({ weightLogs: data || [] });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      set({ isLoadingWeights: false });
+    }
+  },
+
+  addWeightLog: async (studentId: string, weight: number) => {
+    try {
+      // Optimistic update locally
+      const state = get();
+      const tempId = `temp-${Date.now()}`;
+      const newLog = {
+        id: tempId,
+        weight: weight,
+        recorded_at: new Date().toISOString()
+      };
+
+      set({ weightLogs: [...state.weightLogs, newLog] });
+
+      const { data, error } = await supabase
+        .from('weight_logs')
+        .insert([{ student_id: studentId, weight }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update real values
+      set((prev) => ({
+        weightLogs: prev.weightLogs.map(log => log.id === tempId ? data : log)
+      }));
+
+    } catch (e) {
+      console.error(e);
+      // rollback could be applied here
+    }
   },
 
 }));

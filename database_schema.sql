@@ -109,3 +109,25 @@ USING (
     AND workout_days.student_id = auth.uid()
   )
 );
+
+-- 5. Weight Logs (Registro de Peso do Estudante)
+CREATE TABLE public.weight_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  weight DECIMAL(5,2) NOT NULL,
+  recorded_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.weight_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Estudantes podem ver seus próprios pesos" 
+ON public.weight_logs FOR SELECT TO authenticated 
+USING (student_id = auth.uid());
+
+CREATE POLICY "Estudantes podem inserir seus próprios pesos" 
+ON public.weight_logs FOR INSERT TO authenticated 
+WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "Estudantes podem deletar seus próprios pesos" 
+ON public.weight_logs FOR DELETE TO authenticated 
+USING (student_id = auth.uid());
