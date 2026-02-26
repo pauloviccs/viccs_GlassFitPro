@@ -17,7 +17,8 @@ export const feedService = {
             .select(`
                 *,
                 profiles:profiles!feed_posts_student_id_fkey ( name, display_name, avatar_url ),
-                feed_likes ( student_id )
+                feed_likes ( student_id ),
+                feed_comments ( id, post_id, student_id, content, created_at, profiles (name, display_name, avatar_url) )
             `)
             .order('created_at', { ascending: false })
             .range(start, end);
@@ -39,7 +40,8 @@ export const feedService = {
                 created_at: post.created_at,
                 profiles: post.profiles,
                 likesCount,
-                isLikedByMe
+                isLikedByMe,
+                comments: post.feed_comments || []
             };
         });
 
@@ -58,7 +60,8 @@ export const feedService = {
             .select(`
                 *,
                 profiles:profiles!feed_posts_student_id_fkey ( name, display_name, avatar_url ),
-                feed_likes ( student_id )
+                feed_likes ( student_id ),
+                feed_comments ( id, post_id, student_id, content, created_at, profiles (name, display_name, avatar_url) )
             `)
             .eq('student_id', studentId)
             .order('created_at', { ascending: false })
@@ -80,7 +83,8 @@ export const feedService = {
                 created_at: post.created_at,
                 profiles: post.profiles,
                 likesCount,
-                isLikedByMe
+                isLikedByMe,
+                comments: post.feed_comments || []
             };
         });
 
@@ -124,5 +128,28 @@ export const feedService = {
         if (error) throw error;
         // Retorna TRUE se adicionou o like, FALSE se removeu.
         return data as boolean;
+    },
+
+    /**
+     * Cria um comentário
+     */
+    async createComment(postId: string, studentId: string, content: string) {
+        const { data, error } = await supabase.from('feed_comments').insert({
+            post_id: postId,
+            student_id: studentId,
+            content
+        }).select(`
+            *,
+            profiles (name, display_name, avatar_url)
+        `).single();
+
+        if (error) {
+            if (error.code === '23505') {
+                throw new Error('Você só pode fazer 1 comentário por Check-in.');
+            }
+            throw new Error(`Erro ao comentar: ${error.message}`);
+        }
+
+        return data;
     }
 };

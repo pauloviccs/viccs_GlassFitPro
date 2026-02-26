@@ -295,3 +295,34 @@ BEGIN
   END IF;
 END;
 $$;
+
+
+-- -----------------------------------------------------------------------------------------
+-- 11. FEED COMMENTS
+-- -----------------------------------------------------------------------------------------
+CREATE TABLE public.feed_comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  post_id UUID REFERENCES public.feed_posts(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  content VARCHAR(250) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  -- CONSTRAINT MATADORA: 1 comentário por pessoa por post
+  CONSTRAINT one_comment_per_post UNIQUE (post_id, student_id)
+);
+
+ALTER TABLE public.feed_comments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Leitura pública de comentários" 
+ON public.feed_comments FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Estudantes inserem próprios comentários" 
+ON public.feed_comments FOR INSERT TO authenticated 
+WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "Estudantes deletam próprios comentários" 
+ON public.feed_comments FOR DELETE TO authenticated 
+USING (student_id = auth.uid());
+
+CREATE POLICY "Admins podem gerenciar comentários" 
+ON public.feed_comments FOR ALL TO authenticated 
+USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );

@@ -60,6 +60,19 @@ export interface FeedLike {
   created_at: string;
 }
 
+export interface FeedComment {
+  id: string;
+  post_id: string;
+  student_id: string;
+  content: string;
+  created_at: string;
+  profiles?: {
+    name: string;
+    display_name?: string;
+    avatar_url?: string;
+  };
+}
+
 export interface FeedPost {
   id: string;
   student_id: string;
@@ -78,4 +91,5 @@ export interface FeedPost {
   // Custom counters and booleans that we will attach when mapping
   likesCount?: number;
   isLikedByMe?: boolean;
+  comments?: FeedComment[];
 }

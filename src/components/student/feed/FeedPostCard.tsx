@@ -7,11 +7,16 @@ import { feedService } from '@/services/feedService';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { FeedCommentsModal } from './FeedCommentsModal';
+import { FeedComment } from '@/types';
 
 export function FeedPostCard({ post }: { post: FeedPost }) {
     const { user } = useAuth();
     const [liked, setLiked] = useState(post.isLikedByMe || false);
     const [likesCount, setLikesCount] = useState(post.likesCount || 0);
+
+    const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+    const [localComments, setLocalComments] = useState<FeedComment[]>(post.comments || []);
 
     const handleLike = async () => {
         if (!user) return;
@@ -97,13 +102,25 @@ export function FeedPostCard({ post }: { post: FeedPost }) {
                             {likesCount > 0 && likesCount}
                         </button>
 
-                        <button className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary/70 transition-all">
+                        <button
+                            onClick={() => setIsCommentModalOpen(true)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary/70 transition-all"
+                        >
                             <MessageSquare className="w-4 h-4" />
-                            {/* Comments feature WIP */}
+                            {localComments.length > 0 && localComments.length}
                         </button>
                     </div>
                 </div>
             </div>
+
+            <FeedCommentsModal
+                post={{ ...post, comments: localComments }}
+                isOpen={isCommentModalOpen}
+                setIsOpen={setIsCommentModalOpen}
+                onCommentAdded={(newComment) => {
+                    setLocalComments(prev => [...prev, newComment]);
+                }}
+            />
         </GlassCard>
     );
 }
