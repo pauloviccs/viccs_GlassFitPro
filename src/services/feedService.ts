@@ -151,5 +151,25 @@ export const feedService = {
         }
 
         return data;
+    },
+
+    /**
+     * Busca usuários na tabela profiles para autocompletar @mentions
+     */
+    async searchUsersForMention(query: string) {
+        if (!query) return [];
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id, name, display_name, avatar_url')
+            .or(`name.ilike.%${query}%,display_name.ilike.%${query}%`)
+            .limit(5);
+
+        if (error) {
+            console.error('Error searching users for mention:', error);
+            return [];
+        }
+
+        return data || [];
     }
 };

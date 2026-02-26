@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { X, Image as ImageIcon, Loader2, ImagePlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { feedService } from '@/services/feedService';
 import { AnimatedButton } from '@/components/AnimatedButton';
@@ -8,6 +8,7 @@ import { getCroppedImg } from '@/components/student/ImageCropper';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import Cropper from 'react-easy-crop';
+import { MentionTextarea } from '@/components/ui/MentionTextarea';
 
 interface CreatePostModalProps {
     isOpen: boolean;
@@ -30,7 +31,7 @@ export function CreatePostModal({ isOpen, setIsOpen, onPostCreated }: CreatePost
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const MAX_LENGTH = 250;
+    const MAX_CHARS = 250; // Renamed from MAX_LENGTH to MAX_CHARS as per snippet
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -57,7 +58,7 @@ export function CreatePostModal({ isOpen, setIsOpen, onPostCreated }: CreatePost
     };
 
     const handleUploadToStorage = async (blob: Blob) => {
-        const fileName = `${user?.id}-${Date.now()}.jpg`;
+        const fileName = `${user?.id} -${Date.now()}.jpg`;
         const { data, error } = await supabase.storage.from('feed_images').upload(fileName, blob, {
             contentType: 'image/jpeg',
             upsert: false
@@ -65,7 +66,7 @@ export function CreatePostModal({ isOpen, setIsOpen, onPostCreated }: CreatePost
 
         if (error) {
             console.error(error);
-            throw new Error(`Falha no upload: ${error.message}`);
+            throw new Error(`Falha no upload: ${error.message} `);
         }
 
         const { data: { publicUrl } } = supabase.storage.from('feed_images').getPublicUrl(fileName);
@@ -141,14 +142,16 @@ export function CreatePostModal({ isOpen, setIsOpen, onPostCreated }: CreatePost
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0 flex flex-col">
-                                        <textarea
-                                            placeholder="Descreva seu treino de hoje!"
-                                            value={content}
-                                            onChange={(e) => setContent(e.target.value)}
-                                            maxLength={MAX_LENGTH}
-                                            className="w-full bg-transparent text-foreground text-lg placeholder:text-muted-foreground/50 border-none outline-none resize-none pt-2 min-h-[100px]"
-                                            disabled={isSubmitting}
-                                        />
+                                        <div className="p-4 bg-white/5 mx-4 mt-4 rounded-2xl border border-white/10 relative focus-within:border-primary/50 transition-colors">
+                                            <MentionTextarea
+                                                value={content}
+                                                onChange={(e) => setContent(e.target.value)}
+                                                placeholder="Descreva seu treino de hoje! (@ para mencionar alguém)"
+                                                className="w-full bg-transparent text-base md:text-lg text-foreground placeholder:text-muted-foreground/60 border-none outline-none resize-none pt-2 px-2 min-h-[120px]"
+                                                maxLength={MAX_CHARS}
+                                                disabled={isSubmitting}
+                                            />
+                                        </div>
 
                                         {/* Crop Modal View (In-line replacing textarea visually when active) */}
                                         {selectedImage && (
@@ -205,8 +208,8 @@ export function CreatePostModal({ isOpen, setIsOpen, onPostCreated }: CreatePost
                                 </div>
                                 <div className="flex items-center gap-4">
                                     {content.length > 0 && (
-                                        <span className={`text-xs font-bold ${content.length >= MAX_LENGTH ? 'text-destructive' : 'text-muted-foreground'}`}>
-                                            {content.length}/{MAX_LENGTH}
+                                        <span className={`text-xs font-bold ${content.length >= MAX_CHARS ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                            {content.length}/{MAX_CHARS}
                                         </span>
                                     )}
                                 </div>

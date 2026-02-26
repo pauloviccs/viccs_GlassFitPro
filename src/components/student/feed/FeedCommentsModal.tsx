@@ -7,6 +7,7 @@ import { feedService } from '@/services/feedService';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { MentionTextarea } from '@/components/ui/MentionTextarea';
 
 interface FeedCommentsModalProps {
     post: FeedPost;
@@ -144,11 +145,11 @@ export function FeedCommentsModal({ post, isOpen, setIsOpen, onCommentAdded }: F
                                 ) : (
                                     <form onSubmit={handleSubmit} className="flex items-end gap-2">
                                         <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-2 relative focus-within:border-primary/50 transition-colors">
-                                            <textarea
+                                            <MentionTextarea
                                                 value={content}
                                                 onChange={(e) => setContent(e.target.value)}
                                                 maxLength={MAX_LENGTH}
-                                                placeholder="Adicione um recado... (Use @ para marcar)"
+                                                placeholder="Adicione um recado... (@ para mencionar)"
                                                 className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 border-none outline-none resize-none pt-1 px-2 min-h-[40px] max-h-[100px]"
                                                 disabled={isSubmitting}
                                                 rows={1}
