@@ -12,6 +12,7 @@ import AdminStudents from "./pages/admin/AdminStudents";
 import AdminExercises from "./pages/admin/AdminExercises";
 import AdminWorkouts from "./pages/admin/AdminWorkouts";
 import NotFound from "./pages/NotFound";
+import { PublicProfile } from "./pages/student/PublicProfile";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<LoginPage />} />
             <Route path="/student" element={<ProtectedRoute requiredRole="student"><StudentDashboard /></ProtectedRoute>} />
+            <Route path="/student/profile/:idOrUsername" element={<ProtectedRoute requiredRole="student"><PublicProfile /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminPage><AdminOverview /></AdminPage>} />
             <Route path="/admin/students" element={<AdminPage><AdminStudents /></AdminPage>} />
             <Route path="/admin/exercises" element={<AdminPage><AdminExercises /></AdminPage>} />

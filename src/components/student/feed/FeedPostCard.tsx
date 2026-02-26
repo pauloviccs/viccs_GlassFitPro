@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, MessageSquare } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { FeedPost } from '@/types';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { feedService } from '@/services/feedService';
@@ -39,15 +40,20 @@ export function FeedPostCard({ post }: { post: FeedPost }) {
     const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR });
 
     const renderContentWithMentions = (text: string) => {
-        // Separa o texto pelo símbolo @ seguido de qualquer caractere diferente de espaço (\S+)
         const parts = text.split(/(@\S+)/g);
 
         return parts.map((part, i) => {
             if (part.startsWith('@')) {
+                const username = part.substring(1);
                 return (
-                    <span key={i} className="text-primary font-bold cursor-pointer hover:opacity-80 transition-opacity">
+                    <Link
+                        key={i}
+                        to={`/student/profile/${username}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-primary font-bold hover:opacity-80 transition-opacity"
+                    >
                         {part}
-                    </span>
+                    </Link>
                 );
             }
             return <span key={i}>{part}</span>;
@@ -58,7 +64,7 @@ export function FeedPostCard({ post }: { post: FeedPost }) {
         <GlassCard variant="subtle" className="p-4 border-white/5 bg-black/20 hover:bg-black/30 transition-colors">
             <div className="flex gap-3">
                 {/* Avatar Column */}
-                <div className="flex-shrink-0">
+                <Link to={`/student/profile/${post.student_id}`} className="flex-shrink-0 hover:opacity-80 transition-opacity">
                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center border border-white/10">
                         {post.profiles?.avatar_url ? (
                             <img src={post.profiles.avatar_url} alt="User Avatar" className="w-full h-full object-cover" />
@@ -66,15 +72,19 @@ export function FeedPostCard({ post }: { post: FeedPost }) {
                             <span className="font-bold text-primary">{post.profiles?.name?.charAt(0).toUpperCase()}</span>
                         )}
                     </div>
-                </div>
+                </Link>
 
                 {/* Content Column */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-foreground truncate">{post.profiles?.display_name || post.profiles?.name}</span>
-                        <span className="text-sm font-medium text-muted-foreground truncate">
-                            @{post.profiles?.name.toLowerCase().replace(/\s+/g, '')}
-                        </span>
+                        <Link to={`/student/profile/${post.student_id}`} className="hover:underline decoration-primary underline-offset-2">
+                            <span className="font-bold text-foreground truncate">{post.profiles?.display_name || post.profiles?.name}</span>
+                        </Link>
+                        <Link to={`/student/profile/${post.student_id}`}>
+                            <span className="text-sm font-medium text-muted-foreground truncate hover:text-primary transition-colors">
+                                @{post.profiles?.name.toLowerCase().replace(/\s+/g, '')}
+                            </span>
+                        </Link>
                         <span className="text-muted-foreground text-xs">• {timeAgo}</span>
                     </div>
 

@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MentionTextarea } from '@/components/ui/MentionTextarea';
+import { Link } from 'react-router-dom';
 
 interface FeedCommentsModalProps {
     post: FeedPost;
@@ -32,10 +33,16 @@ export function FeedCommentsModal({ post, isOpen, setIsOpen, onCommentAdded }: F
         const parts = text.split(/(@\S+)/g);
         return parts.map((part, i) => {
             if (part.startsWith('@')) {
+                const username = part.substring(1);
                 return (
-                    <span key={i} className="text-primary font-bold cursor-pointer hover:opacity-80 transition-opacity">
+                    <Link
+                        key={i}
+                        to={`/student/profile/${username}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-primary font-bold hover:opacity-80 transition-opacity"
+                    >
                         {part}
-                    </span>
+                    </Link>
                 );
             }
             return <span key={i}>{part}</span>;
@@ -90,15 +97,15 @@ export function FeedCommentsModal({ post, isOpen, setIsOpen, onCommentAdded }: F
                             {/* View Original Post Summary (Optional context to remember what user is replying to) */}
                             <div className="px-4 py-3 bg-white/5 border-b border-white/5 shrink-0">
                                 <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center shrink-0">
+                                    <Link to={`/student/profile/${post.student_id}`} onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} className="w-8 h-8 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity">
                                         {post.profiles?.avatar_url ? (
                                             <img src={post.profiles.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                                         ) : (
                                             <span className="font-bold text-xs text-primary">{post.profiles?.name?.charAt(0).toUpperCase()}</span>
                                         )}
-                                    </div>
+                                    </Link>
                                     <p className="text-sm text-muted-foreground font-medium line-clamp-2">
-                                        <span className="text-foreground font-bold mr-1">@{post.profiles?.name.toLowerCase().replace(/\s+/g, '')}</span>
+                                        <Link to={`/student/profile/${post.student_id}`} onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} className="text-foreground font-bold mr-1 hover:underline decoration-primary underline-offset-2">@{post.profiles?.name.toLowerCase().replace(/\s+/g, '')}</Link>
                                         {renderContentWithMentions(post.content)}
                                     </p>
                                 </div>
@@ -114,17 +121,19 @@ export function FeedCommentsModal({ post, isOpen, setIsOpen, onCommentAdded }: F
                                     post.comments.map(comment => (
                                         <div key={comment.id} className="flex gap-3">
                                             <div className="flex-shrink-0 pt-1">
-                                                <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center">
+                                                <Link to={`/student/profile/${comment.student_id}`} onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} className="w-8 h-8 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center hover:opacity-80 transition-opacity block">
                                                     {comment.profiles?.avatar_url ? (
                                                         <img src={comment.profiles.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                                                     ) : (
                                                         <span className="font-bold text-xs text-primary">{comment.profiles?.name?.charAt(0).toUpperCase()}</span>
                                                     )}
-                                                </div>
+                                                </Link>
                                             </div>
                                             <div className="flex-1 min-w-0 bg-white/5 p-3 rounded-2xl rounded-tl-none border border-white/5">
                                                 <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                                                    <span className="font-bold text-sm text-foreground truncate">{comment.profiles?.display_name || comment.profiles?.name}</span>
+                                                    <Link to={`/student/profile/${comment.student_id}`} onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} className="hover:underline decoration-primary underline-offset-2">
+                                                        <span className="font-bold text-sm text-foreground truncate">{comment.profiles?.display_name || comment.profiles?.name}</span>
+                                                    </Link>
                                                     <span className="text-xs text-muted-foreground">• {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: ptBR })}</span>
                                                 </div>
                                                 <p className="text-sm text-foreground/90 whitespace-pre-wrap break-words">
