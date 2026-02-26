@@ -20,9 +20,19 @@ export function EditProfileModal({ isOpen, setIsOpen, onUpdate }: EditProfileMod
     const { toast } = useToast();
 
     const [displayName, setDisplayName] = useState(user?.displayName || user?.name || '');
+    const [username, setUsername] = useState(user?.username || '');
     const [bio, setBio] = useState(user?.bio || '');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+    // Calculate if user is on cooldown (3 hours)
+    const canEditUsername = () => {
+        if (!user?.lastUsernameUpdate) return true;
+        const lastUpdate = new Date(user.lastUsernameUpdate);
+        const hoursPassed = (new Date().getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+        return hoursPassed >= 3;
+    };
+
+    const isUsernameCooldownActive = !canEditUsername();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // File Upload States
@@ -134,20 +144,43 @@ export function EditProfileModal({ isOpen, setIsOpen, onUpdate }: EditProfileMod
                 finalBannerUrl = await uploadToStorage(bannerFile, 'banners');
             }
 
-            const updates = {
+            // Validate username formatting
+            const isUsernameValid = /^[a-z0-9_]+$/.test(username);
+            if (username && !isUsernameValid) {
+                toast({ title: 'Atenção', description: 'Nome de usuário só pode conter letras minúsculas, números e underlines (_).', variant: 'destructive' });
+                setIsSubmitting(false);
+                return;
+            }
+
+            const updates: any = {
                 display_name: displayName,
                 bio: bio,
                 avatar_url: finalAvatarUrl,
                 banner_url: finalBannerUrl
             };
 
-            const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+            // Only send username if it changed
+            // Also update timestamp to enforce cooldown on database side (if needed) but primarily context side
+            if (username !== user.username) {
+                updates.username = username;
+                updates.last_username_update = new Date().toISOString();
+            }
 
-            if (error) throw error;
+            // In case of unique constraint violation on username, catch and handle gracefully
+            const { error, data } = await supabase.from('profiles').update(updates).eq('id', user.id).select().single();
+
+            if (error) {
+                if (error.code === '23505') {
+                    throw new Error("Este nome de usuário já está em uso por outra pessoa.");
+                }
+                throw error;
+            }
 
             // Update local Context fast
             updateProfileState({
                 displayName: displayName,
+                username: username,
+                lastUsernameUpdate: updates.last_username_update || user.lastUsernameUpdate,
                 bio: bio,
                 avatarUrl: finalAvatarUrl,
                 bannerUrl: finalBannerUrl
@@ -268,6 +301,30 @@ export function EditProfileModal({ isOpen, setIsOpen, onUpdate }: EditProfileMod
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition"
                                     placeholder="Seu nome social"
                                 />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground flex justify-between">
+                                    Nome de Usuário (@)
+                                    <span className="text-xs">{username.length}/30</span>
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">@</span>
+                                    <input
+                                        type="text"
+                                        maxLength={30}
+                                        value={username}
+                                        disabled={isUsernameCooldownActive}
+                                        onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-3 text-foreground focus:outline-none focus:border-primary transition disabled:opacity-50"
+                                        placeholder="seu_username"
+                                    />
+                                </div>
+                                {isUsernameCooldownActive && (
+                                    <p className="text-xs text-destructive font-medium mt-1">
+                                        Você alterou seu username recentemente. Aguarde 3 horas para mudar novamente.
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-2 relative">

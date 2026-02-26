@@ -161,8 +161,8 @@ export const feedService = {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, name, display_name, avatar_url')
-            .or(`name.ilike.%${query}%,display_name.ilike.%${query}%`)
+            .select('id, name, username, display_name, avatar_url')
+            .or(`username.ilike.%${query}%,name.ilike.%${query}%,display_name.ilike.%${query}%`)
             .limit(5);
 
         if (error) {

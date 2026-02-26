@@ -105,7 +105,7 @@ export function FeedCommentsModal({ post, isOpen, setIsOpen, onCommentAdded }: F
                                         )}
                                     </Link>
                                     <p className="text-sm text-muted-foreground font-medium line-clamp-2">
-                                        <Link to={`/student/profile/${post.student_id}`} onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} className="text-foreground font-bold mr-1 hover:underline decoration-primary underline-offset-2">@{post.profiles?.name.toLowerCase().replace(/\s+/g, '')}</Link>
+                                        <Link to={`/student/profile/${post.student_id}`} onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} className="text-foreground font-bold mr-1 hover:underline decoration-primary underline-offset-2">@{post.profiles?.username || post.profiles?.name.toLowerCase().replace(/\s+/g, '')}</Link>
                                         {renderContentWithMentions(post.content)}
                                     </p>
                                 </div>

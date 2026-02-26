@@ -55,6 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser({
           id: data.id,
           name: data.name,
+          username: data.username,
+          lastUsernameUpdate: data.last_username_update,
           email: authUser.email || '',
           role: data.role as UserRole,
           displayName: data.display_name,

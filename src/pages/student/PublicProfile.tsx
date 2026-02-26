@@ -143,12 +143,6 @@ export function PublicProfile() {
                         <span className="text-3xl font-bold">{userProfile.name ? userProfile.name[0].toUpperCase() : 'U'}</span>
                     )}
                 </div>
-
-                <div className="pb-2">
-                    <button className="px-5 py-2 bg-white text-black rounded-full font-bold text-sm hover:bg-white/90 transition z-10">
-                        Seguir
-                    </button>
-                </div>
             </div>
 
             {/* Info Section */}
@@ -158,7 +152,7 @@ export function PublicProfile() {
                         {userProfile.display_name || userProfile.name}
                     </h2>
                     <p className="text-sm text-muted-foreground flex items-center gap-1 font-medium">
-                        @{userProfile.name.toLowerCase().replace(/\s+/g, '')}
+                        @{userProfile.username || userProfile.name.toLowerCase().replace(/\s+/g, '')}
                     </p>
                 </div>
 

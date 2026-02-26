@@ -3,6 +3,8 @@ export type UserRole = 'student' | 'admin';
 export interface User {
   id: string;
   name: string;
+  username?: string;
+  lastUsernameUpdate?: string;
   email: string;
   role: UserRole;
   avatar?: string;
@@ -68,6 +70,7 @@ export interface FeedComment {
   created_at: string;
   profiles?: {
     name: string;
+    username?: string;
     display_name?: string;
     avatar_url?: string;
   };
@@ -84,6 +87,7 @@ export interface FeedPost {
   // Joins that will come from the query
   profiles?: {
     name: string;
+    username?: string;
     display_name?: string;
     avatar_url?: string;
   };

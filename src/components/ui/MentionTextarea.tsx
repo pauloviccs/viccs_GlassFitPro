@@ -6,6 +6,7 @@ import getCaretCoordinates from 'textarea-caret'; // We need this lib for perfec
 interface MentionUser {
     id: string;
     name: string;
+    username?: string;
     display_name?: string;
     avatar_url?: string;
 }
@@ -98,7 +99,8 @@ export function MentionTextarea({ value, onChange, onMentionSelected, className,
 
         if (!match) return;
 
-        const insertText = `@${user.name.trim().replace(/\s+/g, '')} `; // Standardized insert without spaces
+        const actualUsername = user.username || user.name.toLowerCase().replace(/\s+/g, '');
+        const insertText = `@${actualUsername} `; // Standardized insert without spaces
 
         // Split and inject
         const beforeMention = value.slice(0, cursorIdx - match[0].length);
@@ -170,7 +172,7 @@ export function MentionTextarea({ value, onChange, onMentionSelected, className,
                                         </div>
                                         <div className="flex flex-col overflow-hidden">
                                             <span className="text-sm font-bold text-foreground truncate">{u.display_name || u.name}</span>
-                                            <span className="text-xs text-muted-foreground truncate">@{u.name.toLowerCase().replace(/\s+/g, '')}</span>
+                                            <span className="text-xs text-muted-foreground truncate">@{u.username || u.name.toLowerCase().replace(/\s+/g, '')}</span>
                                         </div>
                                     </li>
                                 ))}

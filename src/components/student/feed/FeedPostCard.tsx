@@ -82,7 +82,7 @@ export function FeedPostCard({ post }: { post: FeedPost }) {
                         </Link>
                         <Link to={`/student/profile/${post.student_id}`}>
                             <span className="text-sm font-medium text-muted-foreground truncate hover:text-primary transition-colors">
-                                @{post.profiles?.name.toLowerCase().replace(/\s+/g, '')}
+                                @{post.profiles?.username || post.profiles?.name.toLowerCase().replace(/\s+/g, '')}
                             </span>
                         </Link>
                         <span className="text-muted-foreground text-xs">• {timeAgo}</span>

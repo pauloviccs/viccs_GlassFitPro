@@ -99,7 +99,7 @@ export function ProfileTab() {
                         {user?.displayName || user?.name}
                     </h2>
                     <p className="text-sm text-muted-foreground flex items-center gap-1 font-medium">
-                        @{user?.name.toLowerCase().replace(/\s+/g, '')}
+                        @{user?.username || user?.name.toLowerCase().replace(/\s+/g, '')}
                         <span className="bg-primary/20 text-primary text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-sm font-bold ml-2">
                             ALUNO
                         </span>
