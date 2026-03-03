@@ -74,7 +74,10 @@ export function CreatePostModal({ isOpen, setIsOpen, onPostCreated }: CreatePost
     };
 
     const handleSubmit = async () => {
-        if (!content.trim() && !finalImageData) return;
+        if (!finalImageData) {
+            toast({ title: "Imagem obrigatória", description: "É necessário anexar uma imagem para fazer o check-in diário.", variant: "destructive" });
+            return;
+        }
         if (!user) return;
 
         setIsSubmitting(true);
@@ -123,7 +126,7 @@ export function CreatePostModal({ isOpen, setIsOpen, onPostCreated }: CreatePost
                                 </button>
                                 <AnimatedButton
                                     onClick={handleSubmit}
-                                    disabled={(!content.trim() && !finalImageData) || isSubmitting}
+                                    disabled={!finalImageData || isSubmitting}
                                     className="h-9 px-6 rounded-full font-bold text-sm"
                                 >
                                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Publicar"}

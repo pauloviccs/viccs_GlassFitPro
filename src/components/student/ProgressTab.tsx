@@ -6,10 +6,11 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from '@/components/ui/drawer';
+import { WeeklyHistoryCard } from './WeeklyHistoryCard';
 
 export function ProgressTab() {
     const { user } = useAuth();
-    const { weightLogs, fetchWeightLogs, addWeightLog, isLoadingWeights } = useWorkoutStore();
+    const { weightLogs, fetchWeightLogs, addWeightLog, isLoadingWeights, weeklyHistory, fetchWeeklyHistory } = useWorkoutStore();
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [weightInput, setWeightInput] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,8 +18,9 @@ export function ProgressTab() {
     useEffect(() => {
         if (user?.id) {
             fetchWeightLogs(user.id);
+            fetchWeeklyHistory(user.id);
         }
-    }, [user?.id, fetchWeightLogs]);
+    }, [user?.id, fetchWeightLogs, fetchWeeklyHistory]);
 
     const handleAddWeight = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -182,6 +184,8 @@ export function ProgressTab() {
                             </LineChart>
                         </ResponsiveContainer>
                     </GlassCard>
+
+                    <WeeklyHistoryCard historyData={weeklyHistory} />
                 </>
             )}
         </div>

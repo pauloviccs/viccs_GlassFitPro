@@ -48,6 +48,10 @@ interface WorkoutStore {
   fetchWeightLogs: (studentId: string) => Promise<void>;
   addWeightLog: (studentId: string, weight: number) => Promise<void>;
 
+  // Histórico Semanal
+  weeklyHistory: any[];
+  fetchWeeklyHistory: (studentId: string) => Promise<void>;
+
   // Variáveis antigas deixadas como null/vazio pra não quebrar imports que não foram apagados
   students: any[];
   exerciseLibrary: any[];
@@ -61,6 +65,8 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
   weightLogs: [],
   isLoading: true,
   isLoadingWeights: true,
+  weeklyHistory: [],
+  fetchWeeklyHistory: async () => { },
   students: [],
   exerciseLibrary: [],
   addStudent: () => { },
@@ -179,6 +185,28 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
         console.error("Falha ao salvar completion no supabase", error);
         // Na vida real a gente daria Rollback do state se falhasse. 
         // Mas como MVP, confiamos na rede do usuário.
+      } else {
+        // 3. Atualizar o Histórico Semanal
+        const getMonday = (d: Date) => {
+          const date = new Date(d);
+          const day = date.getDay();
+          const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+          date.setDate(diff);
+          date.setHours(0, 0, 0, 0); // Normalize time
+          return date.toISOString().split('T')[0]; // Format 'YYYY-MM-DD'
+        };
+
+        const mondayDateStr = getMonday(new Date());
+
+        supabase.from('weekly_progress_history').upsert({
+          student_id: state.currentStudent?.id,
+          week_start_date: mondayDateStr,
+          total_exercises: total,
+          completed_exercises: comp,
+          progress_percentage: progress
+        }, { onConflict: 'student_id, week_start_date' }).then(({ error }) => {
+          if (error) console.error("Falha ao salvar histórico semanal no supabase", error);
+        });
       }
     });
   },
@@ -232,5 +260,21 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
       // rollback could be applied here
     }
   },
+
+  fetchWeeklyHistory: async (studentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('weekly_progress_history')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('week_start_date', { ascending: false }) // Mais recentes primeiro
+        .limit(10); // Busca as últimas 10 semanas
+
+      if (error) throw error;
+      set({ weeklyHistory: data || [] });
+    } catch (e) {
+      console.error("Falha ao buscar historico semanal: ", e);
+    }
+  }
 
 }));
