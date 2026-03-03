@@ -27,7 +27,9 @@ export function WeeklyHistoryCard({ historyData }: WeeklyProgressHistoryProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {historyData.map((week, idx) => {
-                    const startDate = parseISO(week.week_start_date);
+                    // Prevenir bug de timezone (SQL date puro vs UTC):
+                    const [year, month, day] = week.week_start_date.split('-');
+                    const startDate = new Date(Number(year), Number(month) - 1, Number(day));
                     const formattedDate = format(startDate, "dd 'de' MMM", { locale: ptBR });
                     const isPerfectWeek = week.progress_percentage === 100;
 
