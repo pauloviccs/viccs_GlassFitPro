@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Trophy, Activity, Calendar } from 'lucide-react';
+import { Trophy, Calendar } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -27,11 +27,12 @@ export function WeeklyHistoryCard({ historyData }: WeeklyProgressHistoryProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {historyData.map((week, idx) => {
-                    // Prevenir bug de timezone (SQL date puro vs UTC):
-                    const [year, month, day] = week.week_start_date.split('-');
-                    const startDate = new Date(Number(year), Number(month) - 1, Number(day));
-                    const formattedDate = format(startDate, "dd 'de' MMM", { locale: ptBR });
-                    const isPerfectWeek = week.progress_percentage === 100;
+                    // Usa week_start_date (a segunda-feira já salva no fuso local, sem conversão UTC)
+                    // parseISO("2026-03-03") retorna a data como-está, sem deslocamento de fuso horário
+                    const weekStart = parseISO(week.week_start_date);
+                    const weekLabel = format(weekStart, "dd/MM/yyyy", { locale: ptBR });
+
+                    const isPerfectWeek = Number(week.progress_percentage) === 100;
 
                     return (
                         <motion.div
@@ -47,9 +48,9 @@ export function WeeklyHistoryCard({ historyData }: WeeklyProgressHistoryProps) {
 
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-primary" />
-                                            <span className="text-sm font-semibold text-foreground">Semana {formattedDate}</span>
+                                        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                                            <Calendar className="w-3 h-3 text-primary" />
+                                            <span>Semana de {weekLabel}</span>
                                         </div>
                                         {isPerfectWeek && <Trophy className="w-4 h-4 text-success" />}
                                     </div>

@@ -131,59 +131,62 @@ export function ProgressTab() {
                 </GlassCard>
             ) : (
                 <>
-                    <GlassCard variant="strong" className="p-6 rounded-3xl grid grid-cols-2 gap-4 items-center">
-                        <div>
-                            <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-1">Último Peso</p>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-4xl font-black text-foreground">{latestWeight}</span>
-                                <span className="text-sm font-medium text-muted-foreground">kg</span>
+                    {/* Desktop: Weight + Chart side by side */}
+                    <div className="md:grid md:grid-cols-2 md:gap-6 space-y-6 md:space-y-0">
+                        <GlassCard variant="strong" className="p-6 rounded-3xl grid grid-cols-2 gap-4 items-center md:flex md:flex-col md:items-start md:gap-6">
+                            <div>
+                                <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-1">Último Peso</p>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-4xl font-black text-foreground">{latestWeight}</span>
+                                    <span className="text-sm font-medium text-muted-foreground">kg</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className={`glass-subtle py-3 px-4 rounded-2xl flex flex-col items-end justify-center ${trendColor} border border-white/5`}>
-                            {trendIcon}
-                            <span className="text-xs font-bold mt-1 uppercase tracking-wider">
-                                {trendColor === 'text-success' ? 'Perdendo' : trendColor === 'text-destructive' ? 'Ganhando' : 'Estável'}
-                            </span>
-                        </div>
-                    </GlassCard>
+                            <div className={`glass-subtle py-3 px-4 rounded-2xl flex flex-col items-end md:items-start justify-center ${trendColor} border border-white/5`}>
+                                {trendIcon}
+                                <span className="text-xs font-bold mt-1 uppercase tracking-wider">
+                                    {trendColor === 'text-success' ? 'Perdendo' : trendColor === 'text-destructive' ? 'Ganhando' : 'Estável'}
+                                </span>
+                            </div>
+                        </GlassCard>
 
-                    <GlassCard variant="subtle" className="p-4 rounded-3xl h-[300px] border-white/5 w-full">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-2 pt-2 mb-4">Evolução do Peso (kg)</p>
-                        <ResponsiveContainer width="100%" height="80%">
-                            <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                                <XAxis
-                                    dataKey="name"
-                                    stroke="#888888"
-                                    fontSize={10}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    dy={10}
-                                />
-                                <YAxis
-                                    stroke="#888888"
-                                    fontSize={10}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    domain={['dataMin - 1', 'dataMax + 1']}
-                                    tickFormatter={(val) => val.toFixed(1)}
-                                />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: 'rgba(20,20,20,0.9)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}
-                                    itemStyle={{ color: '#fff', fontWeight: 'bold' }}
-                                    formatter={(value: any) => [`${value} kg`, 'Peso']}
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="weight"
-                                    stroke="var(--primary)"
-                                    strokeWidth={3}
-                                    dot={{ r: 4, fill: "var(--primary)", strokeWidth: 0 }}
-                                    activeDot={{ r: 6, fill: "#fff" }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </GlassCard>
+                        <GlassCard variant="subtle" className="p-4 rounded-3xl h-[300px] border-white/5 w-full">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-2 pt-2 mb-4">Evolução do Peso (kg)</p>
+                            <ResponsiveContainer width="100%" height="80%">
+                                <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                    <XAxis
+                                        dataKey="name"
+                                        stroke="#888888"
+                                        fontSize={10}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        stroke="#888888"
+                                        fontSize={10}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        domain={['dataMin - 1', 'dataMax + 1']}
+                                        tickFormatter={(val) => val.toFixed(1)}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: 'rgba(20,20,20,0.9)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}
+                                        itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                                        formatter={(value: any) => [`${value} kg`, 'Peso']}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="weight"
+                                        stroke="var(--primary)"
+                                        strokeWidth={3}
+                                        dot={{ r: 4, fill: "var(--primary)", strokeWidth: 0 }}
+                                        activeDot={{ r: 6, fill: "#fff" }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </GlassCard>
+                    </div>
 
                     <WeeklyHistoryCard historyData={weeklyHistory} />
                 </>

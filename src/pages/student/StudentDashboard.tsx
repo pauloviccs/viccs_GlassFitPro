@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Settings, UserCircle, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { BottomNav } from '@/components/BottomNav';
+import { DesktopSidebar } from '@/components/DesktopSidebar';
 import StudentLayout from '@/components/StudentLayout';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { HomeWorkoutTab } from '@/components/student/HomeWorkoutTab';
@@ -50,21 +51,28 @@ export default function StudentDashboard() {
 
   return (
     <StudentLayout>
-      <div className="space-y-6 pb-20 md:pb-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {renderTabContent()}
-          </motion.div>
-        </AnimatePresence>
+      {/* Desktop Sidebar — hidden on mobile */}
+      <DesktopSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+
+      <div className="md:ml-[220px] transition-[margin] duration-300">
+        <div className="space-y-6 pb-20 md:pb-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {renderTabContent()}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
 
+      {/* Mobile Bottom Nav — hidden on desktop */}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </StudentLayout>
   );
 }
+

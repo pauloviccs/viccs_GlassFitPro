@@ -66,7 +66,6 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
   isLoading: true,
   isLoadingWeights: true,
   weeklyHistory: [],
-  fetchWeeklyHistory: async () => { },
   students: [],
   exerciseLibrary: [],
   addStudent: () => { },
@@ -190,10 +189,14 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
         const getMonday = (d: Date) => {
           const date = new Date(d);
           const day = date.getDay();
-          const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+          const diff = date.getDate() - day + (day === 0 ? -6 : 1);
           date.setDate(diff);
-          date.setHours(0, 0, 0, 0); // Normalize time
-          return date.toISOString().split('T')[0]; // Format 'YYYY-MM-DD'
+          date.setHours(0, 0, 0, 0);
+          // Usar data LOCAL (não UTC) para evitar bug de fuso horário no Brasil
+          const yyyy = date.getFullYear();
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          const dd = String(date.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}`;
         };
 
         const mondayDateStr = getMonday(new Date());

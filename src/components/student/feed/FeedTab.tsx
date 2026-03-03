@@ -96,8 +96,8 @@ export function FeedTab() {
                 <h1 className="text-lg font-black text-foreground">Início</h1>
             </div>
 
-            {/* Feed Content */}
-            <div className="px-4 space-y-4 max-w-2xl mx-auto">
+            {/* Feed Content — centered column on desktop, full width on mobile */}
+            <div className="px-4 space-y-4 max-w-2xl mx-auto md:max-w-xl lg:max-w-2xl">
                 {posts.length === 0 ? (
                     <div className="text-center py-10 glass-subtle rounded-3xl border border-white/5">
                         <p className="text-muted-foreground font-medium text-sm">Nenhum check-in ainda.</p>

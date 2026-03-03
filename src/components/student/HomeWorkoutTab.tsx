@@ -126,7 +126,7 @@ export function HomeWorkoutTab({ activeDay, setActiveDay }: { activeDay: string,
                         transition={{ duration: 0.3 }}
                     >
                         {currentDayData.exercises.length > 0 ? (
-                            <div className="grid grid-cols-1 gap-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 {currentDayData.exercises.map((ex, i) => (
                                     <motion.div
                                         key={ex.id}
