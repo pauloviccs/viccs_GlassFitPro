@@ -112,15 +112,31 @@ export function EditProfileModal({ isOpen, setIsOpen, onUpdate }: EditProfileMod
         const response = await fetch(fileUrl);
         const blob = await response.blob();
 
+        // Nome único por timestamp para evitar conflitos
         const fileName = `${user?.id}-${Date.now()}.jpg`;
-        const { data, error } = await supabase.storage.from(bucket).upload(fileName, blob, {
+        
+        // Tenta upload com upsert primeiro
+        let { data, error } = await supabase.storage.from(bucket).upload(fileName, blob, {
             contentType: 'image/jpeg',
             upsert: true
         });
 
+        // Se upsert falhar (pode ser RLS de SELECT que falta), tenta sem upsert
         if (error) {
-            console.error(`Erro upando pro bucket ${bucket}:`, error);
-            throw new Error(`Permissão negada ou erro no Bucket '${bucket}': ${error.message}`);
+            console.warn(`Upload com upsert falhou para ${bucket}, tentando sem upsert...`, error.message);
+            const retryName = `${user?.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+            const retry = await supabase.storage.from(bucket).upload(retryName, blob, {
+                contentType: 'image/jpeg',
+                upsert: false
+            });
+            
+            if (retry.error) {
+                console.error(`Erro final upando pro bucket ${bucket}:`, retry.error);
+                throw new Error(`Permissão negada ou erro no Bucket '${bucket}': ${retry.error.message}`);
+            }
+            
+            const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(retryName);
+            return publicUrl;
         }
 
         const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
@@ -160,14 +176,23 @@ export function EditProfileModal({ isOpen, setIsOpen, onUpdate }: EditProfileMod
             };
 
             // Only send username if it changed
-            // Also update timestamp to enforce cooldown on database side (if needed) but primarily context side
-            if (username !== user.username) {
+            const usernameChanged = username !== user.username;
+            if (usernameChanged) {
                 updates.username = username;
                 updates.last_username_update = new Date().toISOString();
             }
 
-            // In case of unique constraint violation on username, catch and handle gracefully
-            const { error, data } = await supabase.from('profiles').update(updates).eq('id', user.id).select().single();
+            // Attempt the update
+            let { error, data } = await supabase.from('profiles').update(updates).eq('id', user.id).select().single();
+
+            // If the error is about 'last_username_update' column missing, retry without it
+            if (error && error.message?.includes('last_username_update')) {
+                console.warn('Coluna last_username_update não existe no banco. Salvando sem ela.');
+                delete updates.last_username_update;
+                const retryResult = await supabase.from('profiles').update(updates).eq('id', user.id).select().single();
+                error = retryResult.error;
+                data = retryResult.data;
+            }
 
             if (error) {
                 if (error.code === '23505') {
@@ -180,7 +205,7 @@ export function EditProfileModal({ isOpen, setIsOpen, onUpdate }: EditProfileMod
             updateProfileState({
                 displayName: displayName,
                 username: username,
-                lastUsernameUpdate: updates.last_username_update || user.lastUsernameUpdate,
+                lastUsernameUpdate: usernameChanged ? new Date().toISOString() : user.lastUsernameUpdate,
                 bio: bio,
                 avatarUrl: finalAvatarUrl,
                 bannerUrl: finalBannerUrl

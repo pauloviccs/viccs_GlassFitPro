@@ -137,12 +137,18 @@ ALTER TABLE public.profiles ADD COLUMN display_name TEXT;
 ALTER TABLE public.profiles ADD COLUMN avatar_url TEXT;
 ALTER TABLE public.profiles ADD COLUMN banner_url TEXT;
 ALTER TABLE public.profiles ADD COLUMN bio VARCHAR(150);
+ALTER TABLE public.profiles ADD COLUMN username TEXT;
+ALTER TABLE public.profiles ADD COLUMN last_username_update TIMESTAMP WITH TIME ZONE;
+
+-- Constraint de unicidade para username
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_username_unique UNIQUE (username);
 
 -- 7. RPC de Estatísticas (Exercícios Concluídos) para Perfil
 CREATE OR REPLACE FUNCTION get_profile_stats(user_id UUID)
 RETURNS json
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
+SET search_path = public
 AS $$
 DECLARE
   total_completed_exercises INT;
@@ -169,33 +175,31 @@ BEGIN
 END;
 $$;
 
+-- Revogar acesso anônimo e garantir acesso apenas para autenticados
+REVOKE EXECUTE ON FUNCTION public.get_profile_stats(UUID) FROM anon;
+GRANT EXECUTE ON FUNCTION public.get_profile_stats(UUID) TO authenticated;
+
 
 -- -----------------------------------------------------------------------------------------
 -- 8. STORAGE RLS POLICIES (AVATARS & BANNERS)
--- Rode esses scripts para liberar o upload/leitura de imagens nos buckets pelo seu app
+-- Buckets são PÚBLICOS — URLs de objetos são acessíveis diretamente.
+-- NÃO precisamos de policy SELECT (ela controla apenas .list(), que o app não usa).
+-- Apenas INSERT e UPDATE são necessários para upload pelo usuário logado.
 -- -----------------------------------------------------------------------------------------
 
--- Liberar leitura pública do bucket 'avatars'
-CREATE POLICY "Avatars Public Access" ON storage.objects
-  FOR SELECT USING (bucket_id = 'avatars');
-
--- Liberar upload de imagens para usuários logados no bucket 'avatars'
+-- Upload de avatars para usuários logados
 CREATE POLICY "Avatars Upload Access" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.role() = 'authenticated');
 
--- Liberar atualização para usuários logados
+-- Atualização de avatars para usuários logados
 CREATE POLICY "Avatars Update Access" ON storage.objects
   FOR UPDATE USING (bucket_id = 'avatars' AND auth.role() = 'authenticated');
 
--- Liberar leitura pública do bucket 'banners'
-CREATE POLICY "Banners Public Access" ON storage.objects
-  FOR SELECT USING (bucket_id = 'banners');
-
--- Liberar upload de imagens para usuários logados no bucket 'banners'
+-- Upload de banners para usuários logados
 CREATE POLICY "Banners Upload Access" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'banners' AND auth.role() = 'authenticated');
 
--- Liberar atualização para usuários logados
+-- Atualização de banners para usuários logados
 CREATE POLICY "Banners Update Access" ON storage.objects
   FOR UPDATE USING (bucket_id = 'banners' AND auth.role() = 'authenticated');
 
@@ -255,10 +259,8 @@ ON public.feed_likes FOR DELETE TO authenticated
 USING (student_id = auth.uid());
 
 -- Storage RLS para feed_images
--- Liberar leitura pública do bucket 'feed_images'
+-- Bucket é PÚBLICO — não precisa de policy SELECT.
 -- PS: Certifique-se de que o bucket 'feed_images' foi criado no painel do Supabase.
-CREATE POLICY "Feed Images Public Access" ON storage.objects
-  FOR SELECT USING (bucket_id = 'feed_images');
 
 CREATE POLICY "Feed Images Upload Access" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'feed_images' AND auth.role() = 'authenticated');
@@ -277,7 +279,8 @@ CREATE POLICY "Feed Images Delete Access" ON storage.objects
 CREATE OR REPLACE FUNCTION toggle_feed_like(p_post_id UUID, p_user_id UUID)
 RETURNS boolean
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
+SET search_path = public
 AS $$
 DECLARE
   like_exists BOOLEAN;
@@ -295,6 +298,10 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- Revogar acesso anônimo e garantir acesso apenas para autenticados
+REVOKE EXECUTE ON FUNCTION public.toggle_feed_like(UUID, UUID) FROM anon;
+GRANT EXECUTE ON FUNCTION public.toggle_feed_like(UUID, UUID) TO authenticated;
 
 
 -- -----------------------------------------------------------------------------------------

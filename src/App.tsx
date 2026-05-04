@@ -11,6 +11,7 @@ import AdminOverview from "./pages/admin/AdminOverview";
 import AdminStudents from "./pages/admin/AdminStudents";
 import AdminExercises from "./pages/admin/AdminExercises";
 import AdminWorkouts from "./pages/admin/AdminWorkouts";
+import AdminTemplates from "./pages/admin/AdminTemplates";
 import NotFound from "./pages/NotFound";
 import { PublicProfile } from "./pages/student/PublicProfile";
 
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/admin/students" element={<AdminPage><AdminStudents /></AdminPage>} />
             <Route path="/admin/exercises" element={<AdminPage><AdminExercises /></AdminPage>} />
             <Route path="/admin/workouts" element={<AdminPage><AdminWorkouts /></AdminPage>} />
+            <Route path="/admin/templates" element={<AdminPage><AdminTemplates /></AdminPage>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

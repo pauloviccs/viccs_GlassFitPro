@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { GripVertical, Plus, Trash2, Save, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { GripVertical, Plus, Trash2, Save, ChevronDown, Check, Loader2, Search } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { ImportTemplateModal } from '@/components/admin/ImportTemplateModal';
 
 const weekDays = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
 
@@ -18,6 +19,8 @@ export default function AdminWorkouts() {
   const [currentDayExercises, setCurrentDayExercises] = useState<any[]>([]);
 
   const [showExerciseList, setShowExerciseList] = useState(false);
+  const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -112,6 +115,19 @@ export default function AdminWorkouts() {
 
   const updateExercise = (uid: string, field: 'sets' | 'reps', value: number) => {
     setCurrentDayExercises(prev => prev.map(e => e.uid === uid ? { ...e, [field]: value } : e));
+  };
+
+  const handleImportTemplate = (templateExercises: any[]) => {
+    const newExercises = templateExercises.map((ex, idx) => ({
+      uid: `temp-${Date.now()}-${idx}`,
+      exercise_id: ex.exercise_id,
+      name: ex.exercises?.name || 'Desconhecido',
+      sets: ex.default_sets,
+      reps: ex.default_reps,
+      order_index: currentDayExercises.length + idx
+    }));
+    setCurrentDayExercises(prev => [...prev, ...newExercises]);
+    toast({ title: "Treino Importado", description: "Os exercícios foram adicionados à lista. Não esqueça de salvar o treino!" });
   };
 
   const reorderExercises = (newOrder: any[]) => {
@@ -221,14 +237,19 @@ export default function AdminWorkouts() {
 
       {/* Exercises for the Builder */}
       <GlassCard variant="strong" className="rounded-3xl border-white/10 overflow-hidden shadow-2xl">
-        <div className="flex items-center justify-between p-6 border-b border-white/5 bg-white/5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-white/5 bg-white/5 gap-4">
           <div>
             <h3 className="font-semibold text-foreground text-lg">{activeDay.split('-')[0]}</h3>
             <p className="text-xs text-muted-foreground mt-1">Configure o treino para este dia da semana.</p>
           </div>
-          <Button size="sm" variant="glass" onClick={() => setShowExerciseList(true)} className="flex items-center gap-1.5 rounded-xl border border-white/10">
-            <Plus className="w-4 h-4" /> Adicionar Exercício
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowImportModal(true)} className="flex items-center gap-1.5 rounded-xl border-primary/50 text-primary hover:bg-primary/20">
+              Importar Treino
+            </Button>
+            <Button size="sm" variant="glass" onClick={() => setShowExerciseList(true)} className="flex items-center gap-1.5 rounded-xl border border-white/10">
+              <Plus className="w-4 h-4" /> Exercício
+            </Button>
+          </div>
         </div>
 
         <div className="p-6 bg-black/20">
@@ -315,10 +336,25 @@ export default function AdminWorkouts() {
                 exit={{ opacity: 0, y: 30, scale: 0.95 }}
                 className="w-full max-w-md pointer-events-auto"
               >
-                <div className="glass-strong rounded-3xl p-6 max-h-[75vh] flex flex-col border border-white/10 shadow-2xl">
+                <div className="glass-strong rounded-3xl p-6 max-h-[85vh] flex flex-col border border-white/10 shadow-2xl">
                   <h2 className="text-lg font-bold text-foreground mb-4">Biblioteca de Exercícios</h2>
+                  
+                  {/* Search Bar */}
+                  <div className="relative mb-4 shrink-0">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Buscar exercício..."
+                      value={exerciseSearchQuery}
+                      onChange={(e) => setExerciseSearchQuery(e.target.value)}
+                      className="w-full glass-subtle rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+                    />
+                  </div>
+
                   <div className="space-y-3 overflow-y-auto pr-2 scrollbar-hidden">
-                    {exerciseLibrary.map((ex) => (
+                    {exerciseLibrary
+                      .filter(ex => ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase()))
+                      .map((ex) => (
                       <button
                         key={ex.id}
                         onClick={() => addExercise(ex)}
@@ -334,8 +370,8 @@ export default function AdminWorkouts() {
                       </button>
                     ))}
 
-                    {exerciseLibrary.length === 0 && (
-                      <p className="text-center text-sm text-muted-foreground py-8">Nenhum exercício na biblioteca. Acesse a aba 'Exercícios'.</p>
+                    {exerciseLibrary.filter(ex => ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase())).length === 0 && (
+                      <p className="text-center text-sm text-muted-foreground py-8">Nenhum exercício encontrado.</p>
                     )}
                   </div>
                 </div>
@@ -344,6 +380,12 @@ export default function AdminWorkouts() {
           </>
         )}
       </AnimatePresence>
+      {/* Import Template Modal */}
+      <ImportTemplateModal 
+        isOpen={showImportModal} 
+        onClose={() => setShowImportModal(false)} 
+        onImport={handleImportTemplate} 
+      />
     </div>
   );
 }
