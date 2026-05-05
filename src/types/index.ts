@@ -1,4 +1,15 @@
-export type UserRole = 'student' | 'admin';
+export type UserRole = 'student' | 'admin' | 'super_admin';
+
+export interface TeacherRequest {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  message?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_at?: string;
+  created_at: string;
+}
 
 export interface User {
   id: string;

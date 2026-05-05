@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Trash2, Dumbbell, Clock } from 'lucide-react';
+import { Plus, Search, Trash2, Dumbbell, Clock, Pencil } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { CreateTemplateModal } from '@/components/admin/CreateTemplateModal';
+import { CreateTemplateModal, EditableTemplate } from '@/components/admin/CreateTemplateModal';
 
 interface Template {
   id: string;
@@ -13,9 +13,11 @@ interface Template {
   created_at: string;
   workout_template_exercises: {
     id: string;
+    exercise_id: string;
     default_sets: number;
     default_reps: number;
     exercises: {
+      id: string;
       name: string;
       category: string;
     };
@@ -27,6 +29,7 @@ export default function AdminTemplates() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<EditableTemplate | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,9 +45,11 @@ export default function AdminTemplates() {
           *,
           workout_template_exercises (
             id,
+            exercise_id,
             default_sets,
             default_reps,
             exercises (
+              id,
               name,
               muscle_group
             )
@@ -66,8 +71,6 @@ export default function AdminTemplates() {
     if (!window.confirm("Tem certeza que deseja excluir este template? Ele não será removido dos alunos que já o possuem.")) return;
 
     try {
-      // workout_template_exercises cascade delete should be configured in DB, 
-      // but just in case, we delete the template directly.
       const { error } = await supabase.from('workout_templates').delete().eq('id', id);
       if (error) throw error;
       
@@ -77,6 +80,15 @@ export default function AdminTemplates() {
       console.error(e);
       toast({ title: "Erro", description: "Não foi possível excluir o template.", variant: "destructive" });
     }
+  };
+
+  const handleEdit = (template: Template) => {
+    setEditingTemplate(template as unknown as EditableTemplate);
+  };
+
+  const handleCloseModal = () => {
+    setIsCreateModalOpen(false);
+    setEditingTemplate(null);
   };
 
   const filteredTemplates = templates.filter(t => 
@@ -135,15 +147,25 @@ export default function AdminTemplates() {
               key={template.id}
               className="glass rounded-3xl p-6 flex flex-col relative group"
             >
-              <button 
-                onClick={() => handleDelete(template.id)}
-                className="absolute top-4 right-4 p-2 bg-red-500/10 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20"
-                title="Excluir Template"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {/* Action Buttons */}
+              <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => handleEdit(template)}
+                  className="p-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
+                  title="Editar Template"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => handleDelete(template.id)}
+                  className="p-2 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500/20 transition-colors"
+                  title="Excluir Template"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
 
-              <div className="mb-4 pr-8">
+              <div className="mb-4 pr-20">
                 <h3 className="text-xl font-bold text-foreground">{template.name}</h3>
                 {template.description && (
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{template.description}</p>
@@ -179,9 +201,10 @@ export default function AdminTemplates() {
       )}
 
       <CreateTemplateModal 
-        isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)} 
-        onSuccess={fetchTemplates} 
+        isOpen={isCreateModalOpen || !!editingTemplate} 
+        onClose={handleCloseModal} 
+        onSuccess={fetchTemplates}
+        editingTemplate={editingTemplate}
       />
     </div>
   );

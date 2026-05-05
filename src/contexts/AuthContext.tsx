@@ -7,8 +7,11 @@ interface AuthContextType {
   user: AppUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isSuperAdmin: boolean;
+  isTeacher: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
+  signUpWithEmail: (email: string, pass: string) => Promise<{ user: SupabaseUser | null }>;
   logout: () => Promise<void>;
   updateProfileState: (updates: Partial<AppUser>) => void;
 }
@@ -19,6 +22,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isTeacher = user?.role === 'admin' || user?.role === 'super_admin';
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -66,15 +72,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           createdAt: data.created_at,
         });
       } else {
-        // Se usuário não tem perfil explícito na tabela, tenta deduzir.
-        // E-mail estrito para administrador:
-        const isAdmin = authUser.email === 'pauloviccsdesign@gmail.com';
-        const role = isAdmin ? 'admin' : 'student';
-
+        // Novo usuário sem perfil — cria como student por padrão.
+        // O role é SEMPRE definido pelo banco. Sem hardcode de email.
         const newProfile = {
           id: authUser.id,
           name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuário',
-          role: role,
+          role: 'student',
         };
 
         const { error: insertError } = await supabase.from('profiles').insert([newProfile]);
@@ -115,6 +118,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   };
 
+  const signUpWithEmail = async (email: string, pass: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: pass,
+    });
+    if (error) throw error;
+    return { user: data.user };
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
   };
@@ -124,7 +136,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, signInWithGoogle, signInWithEmail, logout, updateProfileState }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated: !!user, 
+      isLoading, 
+      isSuperAdmin, 
+      isTeacher, 
+      signInWithGoogle, 
+      signInWithEmail, 
+      signUpWithEmail,
+      logout, 
+      updateProfileState 
+    }}>
       {children}
     </AuthContext.Provider>
   );

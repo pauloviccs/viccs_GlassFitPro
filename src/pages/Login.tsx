@@ -206,9 +206,15 @@ export default function LoginPage() {
                     {loadingAction ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" /> : 'Acessar Base'}
                   </AnimatedButton>
                 </form>
-                <div className="text-center mt-6">
+                <div className="text-center mt-6 space-y-3">
                   <button onClick={() => setIsAdminMode(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center mx-auto gap-1">
                     Voltar para o Portal do Aluno
+                  </button>
+                  <button 
+                    onClick={() => navigate('/teacher/register')} 
+                    className="text-xs text-primary/70 hover:text-primary transition-colors underline underline-offset-4 block mx-auto"
+                  >
+                    Ainda não tem conta? Solicite acesso como professor
                   </button>
                 </div>
               </motion.div>

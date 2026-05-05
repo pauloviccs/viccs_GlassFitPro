@@ -7,11 +7,13 @@ import { UploadModal } from '@/components/UploadModal';
 import { Exercise } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { getYoutubeThumbnail } from '@/lib/utils';
 
 const muscleGroups = ['Todos', 'Peito', 'Costas', 'Pernas', 'Ombros', 'Bíceps', 'Tríceps', 'Core'];
 
 export default function AdminExercises() {
+  const { user } = useAuth();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [search, setSearch] = useState('');
   const [filterGroup, setFilterGroup] = useState('Todos');
@@ -112,7 +114,7 @@ export default function AdminExercises() {
         if (error) throw error;
         toast({ title: "Sucesso", description: "Exercício atualizado." });
       } else {
-        const { error } = await supabase.from('exercises').insert([payload]);
+        const { error } = await supabase.from('exercises').insert([{ ...payload, teacher_id: user?.id }]);
         if (error) throw error;
         toast({ title: "Criado", description: "Novo exercício adicionado na biblioteca geral." });
       }

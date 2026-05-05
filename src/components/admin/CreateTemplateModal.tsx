@@ -4,14 +4,33 @@ import { X, Check, Loader2, Save, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+
+export interface EditableTemplate {
+  id: string;
+  name: string;
+  description: string;
+  workout_template_exercises: {
+    id: string;
+    exercise_id?: string;
+    default_sets: number;
+    default_reps: number;
+    exercises: {
+      id?: string;
+      name: string;
+    };
+  }[];
+}
 
 interface CreateTemplateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  editingTemplate?: EditableTemplate | null;
 }
 
-export function CreateTemplateModal({ isOpen, onClose, onSuccess }: CreateTemplateModalProps) {
+export function CreateTemplateModal({ isOpen, onClose, onSuccess, editingTemplate }: CreateTemplateModalProps) {
+  const { user } = useAuth();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [exercises, setExercises] = useState<any[]>([]);
@@ -21,15 +40,29 @@ export function CreateTemplateModal({ isOpen, onClose, onSuccess }: CreateTempla
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
+  const isEditMode = !!editingTemplate;
+
   useEffect(() => {
     if (isOpen) {
       fetchExercises();
-      setName('');
-      setDescription('');
-      setSelectedExercises([]);
       setSearchQuery('');
+
+      if (editingTemplate) {
+        // Populate with existing template data
+        setName(editingTemplate.name || '');
+        setDescription(editingTemplate.description || '');
+        // Extract exercise IDs from the template's exercises
+        const existingIds = editingTemplate.workout_template_exercises
+          ?.map(te => te.exercise_id || te.exercises?.id)
+          .filter(Boolean) as string[];
+        setSelectedExercises(existingIds || []);
+      } else {
+        setName('');
+        setDescription('');
+        setSelectedExercises([]);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, editingTemplate]);
 
   const fetchExercises = async () => {
     setIsLoading(true);
@@ -62,39 +95,78 @@ export function CreateTemplateModal({ isOpen, onClose, onSuccess }: CreateTempla
 
     setIsSaving(true);
     try {
-      // 1. Criar o template
-      const { data: templateData, error: templateError } = await supabase
-        .from('workout_templates')
-        .insert([{ name: name.trim(), description: description.trim() }])
-        .select()
-        .single();
+      if (isEditMode && editingTemplate) {
+        // --- EDIT MODE ---
+        // 1. Update template name & description
+        const { error: updateError } = await supabase
+          .from('workout_templates')
+          .update({ name: name.trim(), description: description.trim() })
+          .eq('id', editingTemplate.id);
 
-      if (templateError) throw templateError;
+        if (updateError) throw updateError;
 
-      // 2. Criar os exercícios vinculados
-      const templateExercises = selectedExercises.map((exId, index) => {
-        const exDetail = exercises.find(e => e.id === exId);
-        return {
-          template_id: templateData.id,
-          exercise_id: exId,
-          default_sets: exDetail?.default_sets || 3,
-          default_reps: exDetail?.default_reps || 12,
-          order_index: index
-        };
-      });
+        // 2. Delete all old exercises for this template
+        const { error: deleteError } = await supabase
+          .from('workout_template_exercises')
+          .delete()
+          .eq('template_id', editingTemplate.id);
 
-      const { error: exercisesError } = await supabase
-        .from('workout_template_exercises')
-        .insert(templateExercises);
+        if (deleteError) throw deleteError;
 
-      if (exercisesError) throw exercisesError;
+        // 3. Insert the new set of exercises
+        const templateExercises = selectedExercises.map((exId, index) => {
+          const exDetail = exercises.find(e => e.id === exId);
+          return {
+            template_id: editingTemplate.id,
+            exercise_id: exId,
+            default_sets: exDetail?.default_sets || 3,
+            default_reps: exDetail?.default_reps || 12,
+            order_index: index
+          };
+        });
 
-      toast({ title: "Sucesso", description: "Template criado com sucesso!" });
+        const { error: insertError } = await supabase
+          .from('workout_template_exercises')
+          .insert(templateExercises);
+
+        if (insertError) throw insertError;
+
+        toast({ title: "Sucesso", description: "Template atualizado com sucesso!" });
+      } else {
+        // --- CREATE MODE ---
+        const { data: templateData, error: templateError } = await supabase
+          .from('workout_templates')
+          .insert([{ name: name.trim(), description: description.trim(), teacher_id: user?.id }])
+          .select()
+          .single();
+
+        if (templateError) throw templateError;
+
+        const templateExercises = selectedExercises.map((exId, index) => {
+          const exDetail = exercises.find(e => e.id === exId);
+          return {
+            template_id: templateData.id,
+            exercise_id: exId,
+            default_sets: exDetail?.default_sets || 3,
+            default_reps: exDetail?.default_reps || 12,
+            order_index: index
+          };
+        });
+
+        const { error: exercisesError } = await supabase
+          .from('workout_template_exercises')
+          .insert(templateExercises);
+
+        if (exercisesError) throw exercisesError;
+
+        toast({ title: "Sucesso", description: "Template criado com sucesso!" });
+      }
+
       onSuccess();
       onClose();
     } catch (e) {
       console.error(e);
-      toast({ title: "Erro", description: "Não foi possível criar o template.", variant: "destructive" });
+      toast({ title: "Erro", description: `Não foi possível ${isEditMode ? 'atualizar' : 'criar'} o template.`, variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -120,7 +192,9 @@ export function CreateTemplateModal({ isOpen, onClose, onSuccess }: CreateTempla
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-white/5 bg-white/5 shrink-0">
-            <h2 className="text-xl font-bold text-foreground">Novo Template</h2>
+            <h2 className="text-xl font-bold text-foreground">
+              {isEditMode ? 'Editar Template' : 'Novo Template'}
+            </h2>
             <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 transition-colors">
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
@@ -225,7 +299,7 @@ export function CreateTemplateModal({ isOpen, onClose, onSuccess }: CreateTempla
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
-                  <Save className="w-5 h-5" /> Salvar Template
+                  <Save className="w-5 h-5" /> {isEditMode ? 'Salvar Alterações' : 'Salvar Template'}
                 </>
               )}
             </Button>

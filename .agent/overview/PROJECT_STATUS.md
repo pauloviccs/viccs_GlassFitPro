@@ -113,12 +113,14 @@ viccs_GlassFitPro/
 
 | Tabela | Descrição |
 |---|---|
-| `profiles` | Dados do usuário (nome, username, last_username_update, avatar_url, banner_url, bio, display_name, role: admin/student) |
+| `profiles` | Dados do usuário (nome, username, avatar_url, banner_url, bio, display_name, role: super_admin/admin/student) |
 | `workout_days` | Dias de treino cadastrados por aluno (ex: "Segunda-feira") |
-| `exercises` | Biblioteca de exercícios (nome, grupo muscular, vídeo, imagem) |
+| `exercises` | Biblioteca de exercícios (nome, grupo muscular, vídeo, imagem, **teacher_id** — privada por professor) |
 | `workout_exercises` | Pivot — exercício atribuído a um dia (sets, reps, completed, order_index) |
-| `workout_templates` | Templates de treinos reutilizáveis ("pacotes" criados pelo professor) |
+| `workout_templates` | Templates de treinos reutilizáveis (**teacher_id** — privados por professor) |
 | `workout_template_exercises` | Pivot — exercícios que compõem o template (ordem, séries, repetições padrão) |
+| `teacher_students` | **NOVO** — Vínculo professor ↔ aluno (N:N com UNIQUE constraint) |
+| `teacher_requests` | **NOVO** — Solicitações de acesso como professor (status: pending/approved/rejected) |
 | `weight_logs` | Histórico de peso corporal do aluno (peso + timestamp) |
 | `weekly_progress_history` | Histórico semanal de progresso (week_start_date, total/completed, %) |
 | `posts` | Posts do feed social (imagem obrigatória, texto, student_id) |
@@ -143,21 +145,32 @@ viccs_GlassFitPro/
 - [x] **Layout Responsivo** — BottomNav mobile + DesktopSidebar fixo no desktop
 - [x] **Layout Desktop** — containers adaptados para telas largas (md:ml-[220px])
 
-### Portal Admin
+### Portal Admin (Multi-Professor)
 
 - [x] **Overview** — visão geral de alunos e métricas
 - [x] **Gerenciar Alunos** — CRUD completo, atribuição de treinos, listagem inclui o avatar real do aluno
-- [x] **Biblioteca de Exercícios** — CRUD com vídeo/imagem URL
-- [x] **Treinos Prontos (Templates)** — Criar e gerenciar pacotes de treinos reutilizáveis
+- [x] **Biblioteca de Exercícios** — CRUD com vídeo/imagem URL, **privada por professor** (teacher_id)
+- [x] **Treinos Prontos (Templates)** — Criar, editar e gerenciar pacotes de treinos, **privados por professor**
+- [x] **Edição de Templates** — Modal refatorado (TemplateFormModal) suporta criação e edição completa
 - [x] **Planos de Treino** — criar/editar dias da semana e importar templates para o cronograma do aluno
+- [x] **Perfil do Professor** — Página dedicada com avatar, nome de exibição e bio (`AdminProfile.tsx`)
+- [x] **Configurações (Super Admin)** — Métricas da plataforma, aprovação/rejeição de novos professores, alteração de e-mail/senha (`AdminSettings.tsx`)
+
+### Sistema de Roles
+
+- [x] **3 Níveis de Acesso** — `super_admin`, `admin` (professor), `student`
+- [x] **Cadastro de Professores** — Formulário público (`TeacherRegister.tsx`) cria conta + solicitação pendente
+- [x] **Aprovação pelo Super Admin** — Promove role de student → admin e atualiza status da solicitação
+- [x] **Sidebar dinâmica** — Mostra "Configurações" apenas para super_admin, perfil do professor na sidebar
+- [x] **AuthContext refatorado** — Sem hardcode de email. Role vem 100% do banco. Flags `isSuperAdmin` e `isTeacher`
 
 ### Infraestrutura
 
-- [x] **Auth** — Supabase Auth com roles (admin/student), redirect automático por papel
-- [x] **RLS** — Row Level Security em todas as tabelas sensíveis (incluindo `weekly_progress_history`)
+- [x] **Auth** — Supabase Auth com roles (super_admin/admin/student), redirect automático por papel
+- [x] **RLS Multi-Professor** — Exercícios e templates isolados por teacher_id com policies de CRUD
 - [x] **RPCs Hardened** — `get_profile_stats` e `toggle_feed_like` com `SECURITY INVOKER`, `search_path` fixo e acesso anônimo revogado
-- [x] **Storage Policies** — Buckets públicos (avatars, banners, feed_images): policies de INSERT/UPDATE/DELETE para upload autenticado usando `auth.uid() IS NOT NULL`; policies de SELECT mantidas para suportar `upsert`
-- [x] **Upload Resiliente** — `EditProfileModal` com retry automático: se `upsert` falhar (RLS de SELECT ausente), retenta sem upsert com nome único; se `last_username_update` faltar no schema, retenta save sem a coluna
+- [x] **Storage Policies** — Buckets públicos (avatars, banners, feed_images): policies de INSERT/UPDATE/DELETE para upload autenticado
+- [x] **Upload Resiliente** — `EditProfileModal` com retry automático
 - [x] **Optimistic UI** — `markExerciseComplete` atualiza UI imediatamente, persiste em background
 - [x] **Liquid Glass Design System** — tokens em `tailwind.config.ts` e `index.css`
 
@@ -169,28 +182,31 @@ viccs_GlassFitPro/
 
 | # | Arquivo | Prioridade | O que faz |
 |---|---|---|---|
-| 1 | `supabase_add_username_columns.sql` | **CRÍTICA** | Cria colunas `username` e `last_username_update` em `profiles` |
-| 2 | `supabase_fix_storage_upload.sql` | **CRÍTICA** | Recria ALL storage policies com `auth.uid()` + adiciona SELECT para upsert |
-| 3 | `supabase_security_fixes.sql` | Alta | Hardening v1: RLS, RPCs INVOKER, revoke anon |
-| 4 | `supabase_security_fixes_v2.sql` | Média | Hardening v2: remoção de SELECT policies dos buckets públicos |
-| 5 | `supabase_migration.sql` | Baixa | Corrigir data week_start_date `2026-03-02` → `2026-03-03` |
+| 1 | **`migration_multi_teacher.sql`** | **CRÍTICA** | Sistema multi-professor: roles (super_admin/admin/student), teacher_id em exercises/templates, tabelas teacher_students/teacher_requests, RLS isolada por professor |
+| 2 | `supabase_add_username_columns.sql` | **CRÍTICA** | Cria colunas `username` e `last_username_update` em `profiles` |
+| 3 | `supabase_fix_storage_upload.sql` | **CRÍTICA** | Recria ALL storage policies com `auth.uid()` + adiciona SELECT para upsert |
+| 4 | `supabase_security_fixes.sql` | Alta | Hardening v1: RLS, RPCs INVOKER, revoke anon |
+| 5 | `supabase_security_fixes_v2.sql` | Média | Hardening v2: remoção de SELECT policies dos buckets públicos |
 
-> **⚠️ IMPORTANTE:** Executar #1 e #2 resolve os bugs de Android (edição de perfil e upload de avatar). O #4 será parcialmente sobrescrito pelo #2 — executar #2 por último.
+> **⚠️ IMPORTANTE:** Executar `migration_multi_teacher.sql` **PRIMEIRO** — ele redefine as roles e cria as novas tabelas. Sem essa migração, o frontend não funciona corretamente.
 
 ### 📋 Backlog
 
 - [ ] Notificações push (feature iniciada mas com issues de config no service worker / Vercel)
 - [ ] Testes automatizados (estrutura Vitest existe, cobertura baixa)
 - [ ] GridLayout de exercícios no desktop (Treino da Semana)
+- [ ] Sistema de vínculo professor ↔ aluno no frontend (teacher_students já existe no DB)
 
 ---
 
 ## Última Atualização
 
-`2026-05-04` — **Fix Android Profile Edit + Storage Upload**:
+`2026-05-05` — **GlassFitPro v2: Multi-Teacher System**:
 
-1. **Erro `last_username_update`** — Colunas `username` e `last_username_update` nunca existiram na tabela `profiles`. Criado SQL de migração idempotente (`supabase_add_username_columns.sql`). Schema oficial (`database_schema.sql`) atualizado. `AuthContext` blindado com safe defaults. `EditProfileModal` com retry sem a coluna se ela não existir.
-
-2. **Erro `new row violates RLS` no upload de avatar** — Policies de Storage usavam `auth.role() = 'authenticated'` (incompatível com versões recentes do PostgREST) e as policies de SELECT foram removidas (script v2), quebrando o `upsert`. Criado `supabase_fix_storage_upload.sql` que recria tudo com `auth.uid() IS NOT NULL` e adiciona SELECT de volta. Upload code blindado com retry sem upsert.
-
-3. **Barra de pesquisa** — Adicionada nos modais de Biblioteca de Exercícios (Workout Builder) e Criar Template (Treinos Prontos) para filtragem instantânea.
+1. **Edição de Templates** — Modal refatorado para suportar criação e edição. Botão Pencil nos cards de template.
+2. **Sistema de Roles** — Evolução para 3 níveis (super_admin/admin/student). AuthContext sem hardcode de email.
+3. **Perfil do Professor** — Nova página `AdminProfile.tsx` com avatar, bio e nome de exibição.
+4. **Registro de Professores** — Nova página `TeacherRegister.tsx` com formulário público e fluxo de aprovação.
+5. **Painel de Configurações** — Nova página `AdminSettings.tsx` (super_admin) com métricas, aprovação de professores e alteração de credenciais.
+6. **Biblioteca Privada** — Exercícios e templates agora possuem `teacher_id` e RLS isolada por professor.
+7. **Migration SQL** — `migration_multi_teacher.sql` com todo o schema novo, RLS e dados migrados.
