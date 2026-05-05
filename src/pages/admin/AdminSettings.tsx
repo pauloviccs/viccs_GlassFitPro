@@ -285,12 +285,13 @@ export default function AdminSettings() {
             <Lock className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-bold text-foreground">Alterar Senha</h2>
           </div>
-          <div className="space-y-3">
+          <form onSubmit={(e) => { e.preventDefault(); handleUpdatePassword(); }} className="space-y-3">
             <input
               type="password"
               placeholder="Nova senha"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
               className="w-full glass-subtle rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
             />
             <input
@@ -298,13 +299,14 @@ export default function AdminSettings() {
               placeholder="Confirmar nova senha"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
               className="w-full glass-subtle rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
             />
-            <Button onClick={handleUpdatePassword} disabled={isSavingPassword || !newPassword || !confirmPassword} className="w-full gap-2">
+            <Button type="submit" disabled={isSavingPassword || !newPassword || !confirmPassword} className="w-full gap-2">
               {isSavingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Atualizar Senha
             </Button>
-          </div>
+          </form>
         </GlassCard>
       </motion.div>
     </div>

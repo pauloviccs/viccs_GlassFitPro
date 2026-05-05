@@ -183,3 +183,68 @@ USING (
   teacher_id = auth.uid()
   OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
 );
+
+
+-- 8. ATUALIZAR RLS DE WORKOUT_TEMPLATE_EXERCISES (Pivot: Template ↔ Exercício)
+-- =====================================================================
+-- Essa tabela herda permissões do template pai (via template_id → workout_templates.teacher_id)
+ALTER TABLE public.workout_template_exercises ENABLE ROW LEVEL SECURITY;
+
+-- Remover policies antigas que possam existir
+DROP POLICY IF EXISTS "Authenticated users can view template exercises" ON public.workout_template_exercises;
+DROP POLICY IF EXISTS "Admins can manage template exercises" ON public.workout_template_exercises;
+DROP POLICY IF EXISTS "Template exercises visíveis" ON public.workout_template_exercises;
+DROP POLICY IF EXISTS "Admins gerenciam template exercises" ON public.workout_template_exercises;
+
+-- SELECT: quem pode ver o template, pode ver os exercícios do template
+CREATE POLICY "Visualizar exercícios do template"
+ON public.workout_template_exercises FOR SELECT TO authenticated
+USING (
+  template_id IN (
+    SELECT wt.id FROM public.workout_templates wt
+    WHERE wt.teacher_id = auth.uid()
+       OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
+  )
+);
+
+-- INSERT: professores podem adicionar exercícios aos seus próprios templates
+CREATE POLICY "Professores adicionam exercícios ao template"
+ON public.workout_template_exercises FOR INSERT TO authenticated
+WITH CHECK (
+  template_id IN (
+    SELECT wt.id FROM public.workout_templates wt
+    WHERE wt.teacher_id = auth.uid()
+      AND (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'super_admin')
+  )
+);
+
+-- UPDATE: professores podem atualizar exercícios dos seus templates
+CREATE POLICY "Professores atualizam exercícios do template"
+ON public.workout_template_exercises FOR UPDATE TO authenticated
+USING (
+  template_id IN (
+    SELECT wt.id FROM public.workout_templates wt
+    WHERE wt.teacher_id = auth.uid()
+       OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
+  )
+);
+
+-- DELETE: professores podem remover exercícios dos seus templates
+CREATE POLICY "Professores removem exercícios do template"
+ON public.workout_template_exercises FOR DELETE TO authenticated
+USING (
+  template_id IN (
+    SELECT wt.id FROM public.workout_templates wt
+    WHERE wt.teacher_id = auth.uid()
+       OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
+  )
+);
+
+
+-- 9. LIMPAR SELECT POLICIES EM BUCKETS PÚBLICOS (Supabase Warning Fix)
+-- =====================================================================
+-- Buckets públicos não precisam de SELECT policy no storage.objects.
+-- O acesso público a URLs já funciona sem isso, e a policy expõe a listagem de arquivos.
+DROP POLICY IF EXISTS "avatars_select" ON storage.objects;
+DROP POLICY IF EXISTS "banners_select" ON storage.objects;
+DROP POLICY IF EXISTS "feed_images_select" ON storage.objects;
