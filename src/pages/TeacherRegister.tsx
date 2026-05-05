@@ -61,6 +61,15 @@ export default function TeacherRegister() {
           setIsSubmitting(false);
           return;
         }
+        if (signUpError.message.includes('rate limit') || signUpError.status === 429) {
+          toast({ 
+            title: "Muitas tentativas", 
+            description: "O servidor de autenticação limitou as requisições. Aguarde alguns minutos e tente novamente.", 
+            variant: "destructive" 
+          });
+          setIsSubmitting(false);
+          return;
+        }
         throw signUpError;
       }
 
@@ -188,6 +197,7 @@ export default function TeacherRegister() {
                     placeholder="Seu nome completo"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    autoComplete="name"
                     className="w-full glass-subtle rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
@@ -199,6 +209,7 @@ export default function TeacherRegister() {
                     placeholder="Seu e-mail (diferente da conta de aluno)"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                     className="w-full glass-subtle rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
@@ -210,6 +221,7 @@ export default function TeacherRegister() {
                     placeholder="Senha (mínimo 6 caracteres)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
                     className="w-full glass-subtle rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
@@ -221,6 +233,7 @@ export default function TeacherRegister() {
                     placeholder="Confirmar senha"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
                     className="w-full glass-subtle rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>

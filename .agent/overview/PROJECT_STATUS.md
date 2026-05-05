@@ -96,6 +96,8 @@ viccs_GlassFitPro/
 │   └── test/
 │       └── ...                      ← Testes Vitest
 ├── database_schema.sql              ← Schema completo do PostgreSQL (Supabase)
+├── migration_multi_teacher.sql      ← Migration v2: sistema multi-professor completo
+├── migration_fix_workout_rls.sql    ← Fix: RLS de workout_days e workout_exercises para multi-teacher
 ├── supabase_add_username_columns.sql ← Migration: colunas username + last_username_update em profiles
 ├── supabase_fix_storage_upload.sql  ← Fix: recria todas as policies de Storage (auth.uid() IS NOT NULL)
 ├── supabase_migration.sql           ← Migration: corrigir week_start_date (2026-03-02 → 2026-03-03)
@@ -183,12 +185,13 @@ viccs_GlassFitPro/
 | # | Arquivo | Prioridade | O que faz |
 |---|---|---|---|
 | 1 | **`migration_multi_teacher.sql`** | **CRÍTICA** | Sistema multi-professor: roles (super_admin/admin/student), teacher_id em exercises/templates, tabelas teacher_students/teacher_requests, RLS isolada por professor |
-| 2 | `supabase_add_username_columns.sql` | **CRÍTICA** | Cria colunas `username` e `last_username_update` em `profiles` |
-| 3 | `supabase_fix_storage_upload.sql` | **CRÍTICA** | Recria ALL storage policies com `auth.uid()` + adiciona SELECT para upsert |
-| 4 | `supabase_security_fixes.sql` | Alta | Hardening v1: RLS, RPCs INVOKER, revoke anon |
-| 5 | `supabase_security_fixes_v2.sql` | Média | Hardening v2: remoção de SELECT policies dos buckets públicos |
+| 2 | **`migration_fix_workout_rls.sql`** | **CRÍTICA** | Fix: RLS de `workout_days` e `workout_exercises` — policies originais só aceitavam `admin`, bloqueando `super_admin` com erro 403 (42501) |
+| 3 | `supabase_add_username_columns.sql` | **CRÍTICA** | Cria colunas `username` e `last_username_update` em `profiles` |
+| 4 | `supabase_fix_storage_upload.sql` | **CRÍTICA** | Recria ALL storage policies com `auth.uid()` + adiciona SELECT para upsert |
+| 5 | `supabase_security_fixes.sql` | Alta | Hardening v1: RLS, RPCs INVOKER, revoke anon |
+| 6 | `supabase_security_fixes_v2.sql` | Média | Hardening v2: remoção de SELECT policies dos buckets públicos |
 
-> **⚠️ IMPORTANTE:** Executar `migration_multi_teacher.sql` **PRIMEIRO** — ele redefine as roles e cria as novas tabelas. Sem essa migração, o frontend não funciona corretamente.
+> **⚠️ IMPORTANTE:** Executar `migration_multi_teacher.sql` **PRIMEIRO**, seguido de `migration_fix_workout_rls.sql`. Sem essas migrações, o frontend não funciona corretamente.
 
 ### 📋 Backlog
 
@@ -200,6 +203,20 @@ viccs_GlassFitPro/
 ---
 
 ## Última Atualização
+
+`2026-05-05` — **GlassFitPro v2: Fix Workout RLS (42501)**:
+
+1. **Bug Fix** — Corrigido erro "Não foi possível gravar o treino" (HTTP 403, code 42501). A causa era que as policies RLS de `workout_days` e `workout_exercises` só aceitavam `role = 'admin'`, mas o professor principal tinha `role = 'super_admin'` após a migração multi-teacher.
+2. **Migration** — Criado `migration_fix_workout_rls.sql` com novas policies que aceitam `admin` + `super_admin` e escoam dados por `teacher_students`.
+3. **PROJECT_STATUS** — Sincronizado com nova migration e changelog.
+
+`2026-05-05` — **GlassFitPro v2: Fixes & Hardening**:
+
+1. **Manifest PWA** — Criado `public/site.webmanifest` para corrigir Syntax Error no console.
+2. **Formulários Seguros** — Adicionado `<form>` nos inputs de senha do `AdminSettings` para melhorar acessibilidade e resolver warnings.
+3. **RLS Pivot Table** — Adicionadas policies de CRUD para `workout_template_exercises`, corrigindo o erro 403 ao adicionar exercícios no template.
+4. **Storage Linter** — Removidas policies amplas de `SELECT` dos buckets públicos para resolver warnings de segurança do Supabase.
+5. **Idempotência SQL** — Refatorado `migration_multi_teacher.sql` (DROP POLICY IF EXISTS) para suportar múltiplas execuções sem erro 42710.
 
 `2026-05-05` — **GlassFitPro v2: Multi-Teacher System**:
 

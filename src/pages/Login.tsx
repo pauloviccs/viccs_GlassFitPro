@@ -173,6 +173,7 @@ export default function LoginPage() {
                       placeholder="E-mail"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
                       className="w-full glass-subtle rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
@@ -183,6 +184,7 @@ export default function LoginPage() {
                       placeholder="Senha mestra"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
                       className="w-full glass-subtle rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
