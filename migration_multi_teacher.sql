@@ -1,5 +1,6 @@
 -- =====================================================================
 -- MIGRATION: GlassFitPro v2 — Multi-Teacher System
+-- 100% IDEMPOTENTE — Pode ser re-executado sem erros.
 -- Execute no SQL Editor do Supabase (em ordem)
 -- =====================================================================
 
@@ -52,7 +53,7 @@ CREATE TABLE IF NOT EXISTS public.teacher_students (
 
 ALTER TABLE public.teacher_students ENABLE ROW LEVEL SECURITY;
 
--- Professores/super_admin podem ver e gerenciar seus vínculos
+DROP POLICY IF EXISTS "Professores gerenciam seus alunos" ON public.teacher_students;
 CREATE POLICY "Professores gerenciam seus alunos" 
 ON public.teacher_students FOR ALL TO authenticated
 USING (
@@ -60,7 +61,7 @@ USING (
   OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
 );
 
--- Alunos podem ver seus próprios vínculos (para saber quem é seu professor)
+DROP POLICY IF EXISTS "Alunos veem seus vínculos" ON public.teacher_students;
 CREATE POLICY "Alunos veem seus vínculos"
 ON public.teacher_students FOR SELECT TO authenticated
 USING (student_id = auth.uid());
@@ -90,18 +91,19 @@ CREATE TABLE IF NOT EXISTS public.teacher_requests (
 
 ALTER TABLE public.teacher_requests ENABLE ROW LEVEL SECURITY;
 
--- Super admin pode ver e gerenciar todas as solicitações
+DROP POLICY IF EXISTS "Super admin gerencia solicitações" ON public.teacher_requests;
 CREATE POLICY "Super admin gerencia solicitações"
 ON public.teacher_requests FOR ALL TO authenticated
 USING (
   (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
 );
 
--- Usuário pode ver e criar sua própria solicitação
+DROP POLICY IF EXISTS "Usuário cria sua solicitação" ON public.teacher_requests;
 CREATE POLICY "Usuário cria sua solicitação"
 ON public.teacher_requests FOR INSERT TO authenticated
 WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Usuário vê sua solicitação" ON public.teacher_requests;
 CREATE POLICY "Usuário vê sua solicitação"
 ON public.teacher_requests FOR SELECT TO authenticated
 USING (user_id = auth.uid());
@@ -109,25 +111,23 @@ USING (user_id = auth.uid());
 
 -- 6. ATUALIZAR RLS DE EXERCISES (Privada por Professor)
 -- =====================================================================
--- Remover policies antigas
 DROP POLICY IF EXISTS "Visualização de exercícios pública (para autenticados)" ON public.exercises;
 DROP POLICY IF EXISTS "Somente admins podem modificar exercícios" ON public.exercises;
+DROP POLICY IF EXISTS "Alunos veem exercícios dos seus professores" ON public.exercises;
+DROP POLICY IF EXISTS "Professores gerenciam seus exercícios" ON public.exercises;
+DROP POLICY IF EXISTS "Professores atualizam seus exercícios" ON public.exercises;
+DROP POLICY IF EXISTS "Professores deletam seus exercícios" ON public.exercises;
 
--- Alunos podem ver exercícios dos seus professores
 CREATE POLICY "Alunos veem exercícios dos seus professores"
 ON public.exercises FOR SELECT TO authenticated
 USING (
-  -- Professor vê seus próprios exercícios
   teacher_id = auth.uid()
-  -- Super admin vê tudo
   OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
-  -- Aluno vê exercícios dos professores vinculados
   OR teacher_id IN (
     SELECT ts.teacher_id FROM public.teacher_students ts WHERE ts.student_id = auth.uid()
   )
 );
 
--- Professores gerenciam seus próprios exercícios
 CREATE POLICY "Professores gerenciam seus exercícios"
 ON public.exercises FOR INSERT TO authenticated
 WITH CHECK (
@@ -152,9 +152,12 @@ USING (
 
 -- 7. ATUALIZAR RLS DE WORKOUT_TEMPLATES (Privado por Professor)
 -- =====================================================================
--- Criar policies (as tabelas podem não ter tido policies antes)
 DROP POLICY IF EXISTS "Templates visíveis para autenticados" ON public.workout_templates;
 DROP POLICY IF EXISTS "Admins gerenciam templates" ON public.workout_templates;
+DROP POLICY IF EXISTS "Professores veem seus templates" ON public.workout_templates;
+DROP POLICY IF EXISTS "Professores criam seus templates" ON public.workout_templates;
+DROP POLICY IF EXISTS "Professores atualizam seus templates" ON public.workout_templates;
+DROP POLICY IF EXISTS "Professores deletam seus templates" ON public.workout_templates;
 
 CREATE POLICY "Professores veem seus templates"
 ON public.workout_templates FOR SELECT TO authenticated
@@ -187,16 +190,17 @@ USING (
 
 -- 8. ATUALIZAR RLS DE WORKOUT_TEMPLATE_EXERCISES (Pivot: Template ↔ Exercício)
 -- =====================================================================
--- Essa tabela herda permissões do template pai (via template_id → workout_templates.teacher_id)
 ALTER TABLE public.workout_template_exercises ENABLE ROW LEVEL SECURITY;
 
--- Remover policies antigas que possam existir
 DROP POLICY IF EXISTS "Authenticated users can view template exercises" ON public.workout_template_exercises;
 DROP POLICY IF EXISTS "Admins can manage template exercises" ON public.workout_template_exercises;
 DROP POLICY IF EXISTS "Template exercises visíveis" ON public.workout_template_exercises;
 DROP POLICY IF EXISTS "Admins gerenciam template exercises" ON public.workout_template_exercises;
+DROP POLICY IF EXISTS "Visualizar exercícios do template" ON public.workout_template_exercises;
+DROP POLICY IF EXISTS "Professores adicionam exercícios ao template" ON public.workout_template_exercises;
+DROP POLICY IF EXISTS "Professores atualizam exercícios do template" ON public.workout_template_exercises;
+DROP POLICY IF EXISTS "Professores removem exercícios do template" ON public.workout_template_exercises;
 
--- SELECT: quem pode ver o template, pode ver os exercícios do template
 CREATE POLICY "Visualizar exercícios do template"
 ON public.workout_template_exercises FOR SELECT TO authenticated
 USING (
@@ -207,7 +211,6 @@ USING (
   )
 );
 
--- INSERT: professores podem adicionar exercícios aos seus próprios templates
 CREATE POLICY "Professores adicionam exercícios ao template"
 ON public.workout_template_exercises FOR INSERT TO authenticated
 WITH CHECK (
@@ -218,7 +221,6 @@ WITH CHECK (
   )
 );
 
--- UPDATE: professores podem atualizar exercícios dos seus templates
 CREATE POLICY "Professores atualizam exercícios do template"
 ON public.workout_template_exercises FOR UPDATE TO authenticated
 USING (
@@ -229,7 +231,6 @@ USING (
   )
 );
 
--- DELETE: professores podem remover exercícios dos seus templates
 CREATE POLICY "Professores removem exercícios do template"
 ON public.workout_template_exercises FOR DELETE TO authenticated
 USING (
@@ -243,8 +244,6 @@ USING (
 
 -- 9. LIMPAR SELECT POLICIES EM BUCKETS PÚBLICOS (Supabase Warning Fix)
 -- =====================================================================
--- Buckets públicos não precisam de SELECT policy no storage.objects.
--- O acesso público a URLs já funciona sem isso, e a policy expõe a listagem de arquivos.
 DROP POLICY IF EXISTS "avatars_select" ON storage.objects;
 DROP POLICY IF EXISTS "banners_select" ON storage.objects;
 DROP POLICY IF EXISTS "feed_images_select" ON storage.objects;
